@@ -1,8 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Runtime.InteropServices;
 
 namespace takecare
 {
@@ -10,11 +10,11 @@ namespace takecare
     {
         private const int BYTES_LENGTH = 10;
         private const int SALT_BYTES_SIZE = 32;
-        private const int ITERACTIONS_LIMIT = 50000;
+        private const int ITERACTIONS_LIMIT = 5000;
         private const int KEY_SIZE = 256;
         private const int BLOCK_SIZE = 128;
         private const int BYTE_SIZE = 8;
-        private const int BUFFER_STREAM_SIZE = 8048;
+        private const int BUFFER_STREAM_SIZE = 8192;
         private const int ZERO = 0;
         private static readonly char[] chars = new[]
         {
@@ -61,26 +61,48 @@ namespace takecare
             return data;
         }
 
+        private static byte[] GetHashBytes(byte[] passwordBytes)
+        {
+            return SHA256.Create().ComputeHash(passwordBytes);
+        }
+
+        private static byte[] GetKeyBytes(string password)
+        {
+            return System.Text.Encoding.UTF8.GetBytes(password);
+        }
+
+        private static void DeriveKeyBytes(byte[] passwordHash, byte[] saltBytes, RijndaelManaged AES)
+        {
+            using (Rfc2898DeriveBytes key = new Rfc2898DeriveBytes(passwordHash, saltBytes, ITERACTIONS_LIMIT))
+            {
+                AES.Key = key.GetBytes(AES.KeySize / BYTE_SIZE);
+                AES.IV = key.GetBytes(AES.BlockSize / BYTE_SIZE);
+            }
+        }
+
+        private static void DefineCypherMode(RijndaelManaged AES)
+        {
+            AES.KeySize = KEY_SIZE;
+            AES.BlockSize = BLOCK_SIZE;
+            AES.Padding = PaddingMode.None;
+            AES.Mode = CipherMode.CFB;
+        }
+
+
         // This will encrypt a file with a random sault.
         public static void EncodeFile(string actualFilePath, string newFilePath, string password)
         {
-            byte[] passwordBytes = GetPasswordBytes(password);
-            byte[] passwordHash = GetPasswordHash(passwordBytes);
+            byte[] passwordBytes = GetKeyBytes(password);
+            byte[] passwordHash = GetHashBytes(passwordBytes);
+            byte[] saltBytes = GenerateRandomSaltBytes();
+            byte[] buffer = new byte[BUFFER_STREAM_SIZE];
+            int read = ZERO;
 
             using (RijndaelManaged AES = new RijndaelManaged())
             {
-                AES.KeySize = KEY_SIZE;
-                AES.BlockSize = BLOCK_SIZE;
-                AES.Padding = PaddingMode.PKCS7;
-                AES.Mode = CipherMode.CFB;
+                DefineCypherMode(AES);
 
-                byte[] saltBytes = GenerateRandomSaltBytes();
-
-                using (Rfc2898DeriveBytes key = new Rfc2898DeriveBytes(passwordHash, saltBytes, ITERACTIONS_LIMIT))
-                {
-                    AES.Key = key.GetBytes(AES.KeySize / BYTE_SIZE);
-                    AES.IV = key.GetBytes(AES.BlockSize / BYTE_SIZE);
-                }
+                DeriveKeyBytes(passwordHash, saltBytes, AES);
 
                 using (FileStream actualFileStream = new FileStream(actualFilePath, FileMode.Open))
                 {
@@ -90,25 +112,9 @@ namespace takecare
 
                         using (CryptoStream cryptoStream = new CryptoStream(newFileStream, AES.CreateEncryptor(), CryptoStreamMode.Write))
                         {
-                            try
+                            while ((read = actualFileStream.Read(buffer, ZERO, buffer.Length)) > ZERO)
                             {
-                                int read = ZERO;
-                                byte[] buffer = new byte[BUFFER_STREAM_SIZE];
-
-                                while ((read = actualFileStream.Read(buffer, ZERO, buffer.Length)) > ZERO)
-                                {
-                                    cryptoStream.Write(buffer, ZERO, read);
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine($"Error: {ex.Message}");
-                            }
-                            finally
-                            {
-                                cryptoStream.Close();
-                                newFileStream.Close();
-                                actualFileStream.Close();
+                                cryptoStream.Write(buffer, ZERO, read);
                             }
                         }
                     }
@@ -116,68 +122,32 @@ namespace takecare
             }
         }
 
-        private static byte[] GetPasswordHash(byte[] passwordBytes)
-        {
-            return SHA1.Create().ComputeHash(passwordBytes);
-        }
-
-        private static byte[] GetPasswordBytes(string password)
-        {
-            return System.Text.Encoding.UTF8.GetBytes(password);
-        }
-
         // This will decrypt a file
         public static void DecodeFile(string actualFilePath, string newFilePath, string password)
         {
-            byte[] passwordBytes = GetPasswordBytes(password);
-            byte[] passwordHash = GetPasswordHash(passwordBytes);
+            byte[] passwordBytes = GetKeyBytes(password);
+            byte[] passwordHash = GetHashBytes(passwordBytes);
+            byte[] saltBytes = GenerateRandomSaltBytes();
+            byte[] buffer = new byte[BUFFER_STREAM_SIZE];
+            int read = ZERO;
 
             using (RijndaelManaged AES = new RijndaelManaged())
             {
-                AES.KeySize = KEY_SIZE;
-                AES.BlockSize = BLOCK_SIZE;
-                AES.Padding = PaddingMode.PKCS7;
-                AES.Mode = CipherMode.CFB;
+                DefineCypherMode(AES);
 
-                byte[] saltBytes = GenerateRandomSaltBytes();
-
-                using (Rfc2898DeriveBytes key = new Rfc2898DeriveBytes(passwordHash, saltBytes, ITERACTIONS_LIMIT))
-                {
-                    AES.Key = key.GetBytes(AES.KeySize / BYTE_SIZE);
-                    AES.IV = key.GetBytes(AES.BlockSize / BYTE_SIZE);
-                }
+                DeriveKeyBytes(passwordHash, saltBytes, AES);
 
                 using (FileStream actualFileStream = new FileStream(actualFilePath, FileMode.Open))
                 {
+                    actualFileStream.Read(saltBytes, ZERO, saltBytes.Length);
+
                     using (FileStream newFileStream = new FileStream(newFilePath, FileMode.Create))
                     {
-                        actualFileStream.Read(saltBytes, ZERO, saltBytes.Length);
-
                         using (CryptoStream cryptoStream = new CryptoStream(actualFileStream, AES.CreateDecryptor(), CryptoStreamMode.Read))
                         {
-                            try
+                            while ((read = cryptoStream.Read(buffer, ZERO, buffer.Length)) > ZERO)
                             {
-                                int read = ZERO;
-                                byte[] buffer = new byte[BUFFER_STREAM_SIZE];
-
-                                while ((read = cryptoStream.Read(buffer, ZERO, buffer.Length)) > ZERO)
-                                {
-                                    newFileStream.Write(buffer, ZERO, read);
-                                }
-                            }
-                            catch (CryptographicException ex_CryptographicException)
-                            {
-                                Console.WriteLine($"CryptographicException error: {ex_CryptographicException.Message}");
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine($"Error: {ex.Message}");
-                            }
-                            finally
-                            {
-                                cryptoStream.Close();
-                                newFileStream.Close();
-                                actualFileStream.Close();
+                                newFileStream.Write(buffer, ZERO, read);
                             }
                         }
                     }

