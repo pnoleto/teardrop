@@ -28,7 +28,7 @@ namespace takecare
 
         public static string GetRandomString(int length)
         {
-            char[]randomChars = new char[length];
+            char[] randomChars = new char[length];
 
             Random random = new Random();
 
@@ -84,7 +84,7 @@ namespace takecare
         {
             AES.KeySize = KEY_SIZE;
             AES.BlockSize = BLOCK_SIZE;
-            AES.Padding = PaddingMode.None;
+            AES.Padding = PaddingMode.PKCS7;
             AES.Mode = CipherMode.CFB;
         }
 
@@ -96,29 +96,38 @@ namespace takecare
             byte[] passwordHash = GetHashBytes(passwordBytes);
             byte[] saltBytes = GenerateRandomSaltBytes();
             byte[] buffer = new byte[BUFFER_STREAM_SIZE];
-            int read = ZERO;
 
-            using (RijndaelManaged AES = new RijndaelManaged())
+            using (FileStream newFileStream = new FileStream(newFilePath, FileMode.Create))
             {
-                DefineCypherMode(AES);
-
-                DeriveKeyBytes(passwordHash, saltBytes, AES);
+                newFileStream.Write(saltBytes, ZERO, saltBytes.Length);
 
                 using (FileStream actualFileStream = new FileStream(actualFilePath, FileMode.Open))
                 {
-                    using (FileStream newFileStream = new FileStream(newFilePath, FileMode.Create))
+                    using (RijndaelManaged AES = new RijndaelManaged())
                     {
-                        newFileStream.Write(saltBytes, ZERO, saltBytes.Length);
+                        DefineCypherMode(AES);
+
+                        DeriveKeyBytes(passwordHash, saltBytes, AES);
 
                         using (CryptoStream cryptoStream = new CryptoStream(newFileStream, AES.CreateEncryptor(), CryptoStreamMode.Write))
                         {
+                            int read = ZERO;
+
                             while ((read = actualFileStream.Read(buffer, ZERO, buffer.Length)) > ZERO)
                             {
                                 cryptoStream.Write(buffer, ZERO, read);
                             }
+
+                            cryptoStream.Close();
                         }
+
+                        AES.Clear();
                     }
+
+                    actualFileStream.Close();
                 }
+
+                newFileStream.Close();
             }
         }
 
@@ -127,31 +136,40 @@ namespace takecare
         {
             byte[] passwordBytes = GetKeyBytes(password);
             byte[] passwordHash = GetHashBytes(passwordBytes);
-            byte[] saltBytes = GenerateRandomSaltBytes();
+            byte[] saltBytes = new byte[SALT_BYTES_SIZE];
             byte[] buffer = new byte[BUFFER_STREAM_SIZE];
-            int read = ZERO;
 
-            using (RijndaelManaged AES = new RijndaelManaged())
+            using (FileStream newFileStream = new FileStream(newFilePath, FileMode.Create))
             {
-                DefineCypherMode(AES);
-
-                DeriveKeyBytes(passwordHash, saltBytes, AES);
-
                 using (FileStream actualFileStream = new FileStream(actualFilePath, FileMode.Open))
                 {
                     actualFileStream.Read(saltBytes, ZERO, saltBytes.Length);
 
-                    using (FileStream newFileStream = new FileStream(newFilePath, FileMode.Create))
+                    using (RijndaelManaged AES = new RijndaelManaged())
                     {
+                        DefineCypherMode(AES);
+
+                        DeriveKeyBytes(passwordHash, saltBytes, AES);
+
                         using (CryptoStream cryptoStream = new CryptoStream(actualFileStream, AES.CreateDecryptor(), CryptoStreamMode.Read))
                         {
+                            int read = ZERO;
+
                             while ((read = cryptoStream.Read(buffer, ZERO, buffer.Length)) > ZERO)
                             {
                                 newFileStream.Write(buffer, ZERO, read);
                             }
+
+                            cryptoStream.Close();
                         }
+
+                        AES.Clear();
                     }
+
+                    actualFileStream.Close();
                 }
+
+                newFileStream.Close();
             }
         }
     }
