@@ -3,13 +3,12 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
-using System.Windows.Forms;
 
-namespace teardrop
+namespace takecare
 {
-    class Crypto
+    public class CryptoManager
     {
-        private const int BYTES_LIMIT = 10;
+        private const int BYTES_LENGTH = 10;
         private const int SALT_BYTES_SIZE = 32;
         private const int ITERACTIONS_LIMIT = 50000;
         private const int KEY_SIZE = 256;
@@ -17,15 +16,28 @@ namespace teardrop
         private const int BYTE_SIZE = 8;
         private const int BUFFER_STREAM_SIZE = 8048;
         private const int ZERO = 0;
-
-        // This is used to generate a random string. Can be used to generate the encryption key
-        private static Random random = new Random();
+        private static readonly char[] chars = new[]
+        {
+            'A','B','C','D','E','F',
+            'G','H','I','J','K','L',
+            'M','N','O','P','Q','R',
+            'S','T','U','V','W','X',
+            'Y','Z','0','1','2','3',
+            '4','5','6','7','8','9'
+        };
 
         public static string GetRandomString(int length)
         {
-            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            return new string(Enumerable.Repeat(chars, length)
-              .Select(s => s[random.Next(s.Length)]).ToArray());
+            char[]randomChars = new char[length];
+
+            Random random = new Random();
+
+            for (int i = 0; i < length; i++)
+            {
+                randomChars[i] = chars[random.Next(chars.Length)];
+            }
+
+            return new string(randomChars.ToArray());
         }
 
         // This code can be used to delete the encryption key from memory!
@@ -40,7 +52,7 @@ namespace teardrop
 
             using (RNGCryptoServiceProvider service = new RNGCryptoServiceProvider())
             {
-                for (uint i = 0; i < BYTES_LIMIT; i++)
+                for (uint i = 0; i < BYTES_LENGTH; i++)
                 {
                     service.GetBytes(data);
                 }
@@ -50,9 +62,10 @@ namespace teardrop
         }
 
         // This will encrypt a file with a random sault.
-        public static void EncodeFile(string filePath, string newFilePath, string password)
+        public static void EncodeFile(string actualFilePath, string newFilePath, string password)
         {
             byte[] passwordBytes = GetPasswordBytes(password);
+            byte[] passwordHash = GetPasswordHash(passwordBytes);
 
             using (RijndaelManaged AES = new RijndaelManaged())
             {
@@ -63,23 +76,23 @@ namespace teardrop
 
                 byte[] saltBytes = GenerateRandomSaltBytes();
 
-                using (Rfc2898DeriveBytes key = new Rfc2898DeriveBytes(passwordBytes, saltBytes, ITERACTIONS_LIMIT))
+                using (Rfc2898DeriveBytes key = new Rfc2898DeriveBytes(passwordHash, saltBytes, ITERACTIONS_LIMIT))
                 {
                     AES.Key = key.GetBytes(AES.KeySize / BYTE_SIZE);
                     AES.IV = key.GetBytes(AES.BlockSize / BYTE_SIZE);
                 }
 
-                using (FileStream actualFileStream = new FileStream(filePath, FileMode.Open))
+                using (FileStream actualFileStream = new FileStream(actualFilePath, FileMode.Open))
                 {
                     using (FileStream newFileStream = new FileStream(newFilePath, FileMode.Create))
                     {
-                        newFileStream.Write(saltBytes, 0, saltBytes.Length);
+                        newFileStream.Write(saltBytes, ZERO, saltBytes.Length);
 
                         using (CryptoStream cryptoStream = new CryptoStream(newFileStream, AES.CreateEncryptor(), CryptoStreamMode.Write))
                         {
                             try
                             {
-                                int read = 0;
+                                int read = ZERO;
                                 byte[] buffer = new byte[BUFFER_STREAM_SIZE];
 
                                 while ((read = actualFileStream.Read(buffer, ZERO, buffer.Length)) > ZERO)
@@ -103,6 +116,11 @@ namespace teardrop
             }
         }
 
+        private static byte[] GetPasswordHash(byte[] passwordBytes)
+        {
+            return SHA1.Create().ComputeHash(passwordBytes);
+        }
+
         private static byte[] GetPasswordBytes(string password)
         {
             return System.Text.Encoding.UTF8.GetBytes(password);
@@ -111,8 +129,8 @@ namespace teardrop
         // This will decrypt a file
         public static void DecodeFile(string actualFilePath, string newFilePath, string password)
         {
-            byte[] salt = new byte[SALT_BYTES_SIZE];
             byte[] passwordBytes = GetPasswordBytes(password);
+            byte[] passwordHash = GetPasswordHash(passwordBytes);
 
             using (RijndaelManaged AES = new RijndaelManaged())
             {
@@ -121,7 +139,9 @@ namespace teardrop
                 AES.Padding = PaddingMode.PKCS7;
                 AES.Mode = CipherMode.CFB;
 
-                using (Rfc2898DeriveBytes key = new Rfc2898DeriveBytes(passwordBytes, salt, ITERACTIONS_LIMIT))
+                byte[] saltBytes = GenerateRandomSaltBytes();
+
+                using (Rfc2898DeriveBytes key = new Rfc2898DeriveBytes(passwordHash, saltBytes, ITERACTIONS_LIMIT))
                 {
                     AES.Key = key.GetBytes(AES.KeySize / BYTE_SIZE);
                     AES.IV = key.GetBytes(AES.BlockSize / BYTE_SIZE);
@@ -129,10 +149,10 @@ namespace teardrop
 
                 using (FileStream actualFileStream = new FileStream(actualFilePath, FileMode.Open))
                 {
-                    actualFileStream.Read(salt, ZERO, salt.Length);
-
                     using (FileStream newFileStream = new FileStream(newFilePath, FileMode.Create))
                     {
+                        actualFileStream.Read(saltBytes, ZERO, saltBytes.Length);
+
                         using (CryptoStream cryptoStream = new CryptoStream(actualFileStream, AES.CreateDecryptor(), CryptoStreamMode.Read))
                         {
                             try

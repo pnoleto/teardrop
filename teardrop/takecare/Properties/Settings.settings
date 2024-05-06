@@ -6,7 +6,7 @@
       <Value Profile="(Default)" />
     </Setting>
     <Setting Name="extension" Type="System.String" Scope="User">
-      <Value Profile="(Default)">.fallentear</Value>
+      <Value Profile="(Default)">.toasty</Value>
     </Setting>
     <Setting Name="db_host" Type="System.String" Scope="User">
       <Value Profile="(Default)">127.0.0.1</Value>
@@ -26,9 +26,6 @@
     <Setting Name="debug" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
-    <Setting Name="application_title" Type="System.String" Scope="User">
-      <Value Profile="(Default)">Your Title Here</Value>
-    </Setting>
     <Setting Name="disable_taskmgr" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
@@ -46,6 +43,9 @@
     </Setting>
     <Setting Name="theme" Type="System.String" Scope="User">
       <Value Profile="(Default)">flash</Value>
+    </Setting>
+    <Setting Name="application_title" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
     </Setting>
   </Settings>
 </SettingsFile>

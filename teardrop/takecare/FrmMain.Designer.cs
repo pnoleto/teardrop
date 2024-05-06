@@ -1,5 +1,5 @@
 ﻿
-namespace teardrop
+namespace takecare
 {
     partial class FrmMain
     {
@@ -31,10 +31,10 @@ namespace teardrop
         {
             this.components = new System.ComponentModel.Container();
             this.panel_main = new System.Windows.Forms.Panel();
-            this.label1 = new System.Windows.Forms.Label();
+            this.lblTitle = new System.Windows.Forms.Label();
             this.textBoxKey = new System.Windows.Forms.TextBox();
             this.button1 = new System.Windows.Forms.Button();
-            this.textBox1 = new System.Windows.Forms.TextBox();
+            this.txtLog = new System.Windows.Forms.TextBox();
             this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.panel_theme_flash = new System.Windows.Forms.Panel();
             this.label_theme_flash = new System.Windows.Forms.Label();
@@ -46,10 +46,10 @@ namespace teardrop
             // panel_main
             // 
             this.panel_main.BackColor = System.Drawing.Color.DarkRed;
-            this.panel_main.Controls.Add(this.label1);
+            this.panel_main.Controls.Add(this.lblTitle);
             this.panel_main.Controls.Add(this.textBoxKey);
             this.panel_main.Controls.Add(this.button1);
-            this.panel_main.Controls.Add(this.textBox1);
+            this.panel_main.Controls.Add(this.txtLog);
             this.panel_main.Location = new System.Drawing.Point(56, 59);
             this.panel_main.Name = "panel_main";
             this.panel_main.Size = new System.Drawing.Size(1228, 750);
@@ -57,13 +57,13 @@ namespace teardrop
             // 
             // label1
             // 
-            this.label1.AutoSize = true;
-            this.label1.Font = new System.Drawing.Font("Exo 2", 24F);
-            this.label1.Location = new System.Drawing.Point(448, 0);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(338, 58);
-            this.label1.TabIndex = 3;
-            this.label1.Text = "YOUR TITLE HERE";
+            this.lblTitle.AutoSize = true;
+            this.lblTitle.Font = new System.Drawing.Font("Exo 2", 24F);
+            this.lblTitle.Location = new System.Drawing.Point(448, 0);
+            this.lblTitle.Name = "label1";
+            this.lblTitle.Size = new System.Drawing.Size(338, 58);
+            this.lblTitle.TabIndex = 3;
+            this.lblTitle.Text = "YOUR TITLE HERE";
             // 
             // textBox3
             // 
@@ -87,18 +87,18 @@ namespace teardrop
             this.button1.TabIndex = 1;
             this.button1.Text = "Decrypt";
             this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.Button1_Click);
+            this.button1.Click += new System.EventHandler(this.BtnDecrypt_Click);
             // 
             // textBox1
             // 
-            this.textBox1.BackColor = System.Drawing.Color.DarkRed;
-            this.textBox1.ForeColor = System.Drawing.Color.White;
-            this.textBox1.Location = new System.Drawing.Point(19, 102);
-            this.textBox1.Multiline = true;
-            this.textBox1.Name = "textBox1";
-            this.textBox1.ReadOnly = true;
-            this.textBox1.Size = new System.Drawing.Size(1189, 573);
-            this.textBox1.TabIndex = 0;
+            this.txtLog.BackColor = System.Drawing.Color.DarkRed;
+            this.txtLog.ForeColor = System.Drawing.Color.White;
+            this.txtLog.Location = new System.Drawing.Point(19, 102);
+            this.txtLog.Multiline = true;
+            this.txtLog.Name = "textBox1";
+            this.txtLog.ReadOnly = true;
+            this.txtLog.Size = new System.Drawing.Size(1189, 573);
+            this.txtLog.TabIndex = 0;
             // 
             // timer1
             // 
@@ -142,7 +142,7 @@ namespace teardrop
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FrmMain_FormClosing);
-            this.Load += new System.EventHandler(this.Form1_Load);
+            this.Load += new System.EventHandler(this.FrmMain_Load);
             this.panel_main.ResumeLayout(false);
             this.panel_main.PerformLayout();
             this.panel_theme_flash.ResumeLayout(false);
@@ -153,10 +153,10 @@ namespace teardrop
 
         #endregion
         private System.Windows.Forms.Panel panel_main;
-        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Label lblTitle;
         private System.Windows.Forms.TextBox textBoxKey;
         private System.Windows.Forms.Button button1;
-        private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.TextBox txtLog;
         private System.Windows.Forms.Timer timer1;
         private System.Windows.Forms.Panel panel_theme_flash;
         private System.Windows.Forms.Label label_theme_flash;

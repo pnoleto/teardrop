@@ -9,7 +9,7 @@
 //------------------------------------------------------------------------------
 
 
-namespace teardrop.Properties
+namespace takecare.Properties
 {
     /// <summary>
     ///   Eine stark typisierte Ressourcenklasse zum Suchen von lokalisierten Zeichenfolgen usw.
