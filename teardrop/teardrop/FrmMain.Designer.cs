@@ -1,7 +1,7 @@
 ﻿
 namespace teardrop
 {
-    partial class Form1
+    partial class FrmMain
     {
         /// <summary>
         /// Erforderliche Designervariable.
@@ -32,7 +32,7 @@ namespace teardrop
             this.components = new System.ComponentModel.Container();
             this.panel_main = new System.Windows.Forms.Panel();
             this.label1 = new System.Windows.Forms.Label();
-            this.textBox3 = new System.Windows.Forms.TextBox();
+            this.textBoxKey = new System.Windows.Forms.TextBox();
             this.button1 = new System.Windows.Forms.Button();
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.timer1 = new System.Windows.Forms.Timer(this.components);
@@ -47,7 +47,7 @@ namespace teardrop
             // 
             this.panel_main.BackColor = System.Drawing.Color.DarkRed;
             this.panel_main.Controls.Add(this.label1);
-            this.panel_main.Controls.Add(this.textBox3);
+            this.panel_main.Controls.Add(this.textBoxKey);
             this.panel_main.Controls.Add(this.button1);
             this.panel_main.Controls.Add(this.textBox1);
             this.panel_main.Location = new System.Drawing.Point(56, 59);
@@ -67,15 +67,15 @@ namespace teardrop
             // 
             // textBox3
             // 
-            this.textBox3.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            this.textBoxKey.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBox3.BackColor = System.Drawing.Color.DarkRed;
-            this.textBox3.ForeColor = System.Drawing.Color.White;
-            this.textBox3.Location = new System.Drawing.Point(19, 700);
-            this.textBox3.Name = "textBox3";
-            this.textBox3.Size = new System.Drawing.Size(899, 31);
-            this.textBox3.TabIndex = 2;
-            this.textBox3.Text = "Enter Decryption Key here";
+            this.textBoxKey.BackColor = System.Drawing.Color.DarkRed;
+            this.textBoxKey.ForeColor = System.Drawing.Color.White;
+            this.textBoxKey.Location = new System.Drawing.Point(19, 700);
+            this.textBoxKey.Name = "textBox3";
+            this.textBoxKey.Size = new System.Drawing.Size(899, 31);
+            this.textBoxKey.TabIndex = 2;
+            this.textBoxKey.Text = "Enter Decryption Key here";
             // 
             // button1
             // 
@@ -87,7 +87,7 @@ namespace teardrop
             this.button1.TabIndex = 1;
             this.button1.Text = "Decrypt";
             this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.button1_Click);
+            this.button1.Click += new System.EventHandler(this.Button1_Click);
             // 
             // textBox1
             // 
@@ -141,7 +141,7 @@ namespace teardrop
             this.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.Name = "Form1";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FrmMain_FormClosing);
             this.Load += new System.EventHandler(this.Form1_Load);
             this.panel_main.ResumeLayout(false);
             this.panel_main.PerformLayout();
@@ -154,7 +154,7 @@ namespace teardrop
         #endregion
         private System.Windows.Forms.Panel panel_main;
         private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.TextBox textBox3;
+        private System.Windows.Forms.TextBox textBoxKey;
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.TextBox textBox1;
         private System.Windows.Forms.Timer timer1;

