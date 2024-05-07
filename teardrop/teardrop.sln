@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30907.101
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33829.357
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "teardrop", "teardrop\teardrop.csproj", "{82E9CFB5-D664-4C3E-9B55-3B7FBA97EFC2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "teardrop", "teardrop\teardrop.csproj", "{A3429FF5-5F74-44FD-A578-96C0A81EF2C4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,10 +11,10 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{82E9CFB5-D664-4C3E-9B55-3B7FBA97EFC2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{82E9CFB5-D664-4C3E-9B55-3B7FBA97EFC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{82E9CFB5-D664-4C3E-9B55-3B7FBA97EFC2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{82E9CFB5-D664-4C3E-9B55-3B7FBA97EFC2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A3429FF5-5F74-44FD-A578-96C0A81EF2C4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A3429FF5-5F74-44FD-A578-96C0A81EF2C4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A3429FF5-5F74-44FD-A578-96C0A81EF2C4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A3429FF5-5F74-44FD-A578-96C0A81EF2C4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
