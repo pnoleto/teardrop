@@ -79,6 +79,7 @@
             SizeGripStyle = SizeGripStyle.Hide;
             StartPosition = FormStartPosition.CenterScreen;
             TopMost = true;
+            FormClosing += FrmMain_FormClosing;
             Load += FrmMain_Load;
             ResumeLayout(false);
             PerformLayout();

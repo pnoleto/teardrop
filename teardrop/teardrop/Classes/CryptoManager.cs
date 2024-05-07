@@ -1,5 +1,6 @@
 ﻿using System.Security.Cryptography;
 using System.Runtime.InteropServices;
+using System;
 
 namespace teardrop
 {
@@ -44,8 +45,6 @@ namespace teardrop
         [LibraryImport("KERNEL32.DLL", EntryPoint = "RtlZeroMemory")]
         public static partial bool ZeroMemory(IntPtr Destination, int Length);
 
-
-        // This will generate a salt for the encryption process
         public static byte[] GenerateRandomSaltBytes()
         {
             byte[] saltBytes = new byte[SALT_BYTES_SIZE];
@@ -80,7 +79,7 @@ namespace teardrop
             }
         }
 
-        private static void DefineCypherMode(Aes AES)
+        private static void DefineCipherMode(Aes AES)
         {
             AES.KeySize = KEY_SIZE;
             AES.BlockSize = BLOCK_SIZE;
@@ -90,7 +89,7 @@ namespace teardrop
 
 
         // This will encrypt a file with a random sault.
-        public static void EncodeFile(string actualFilePath, string newFilePath, string password)
+        public static async Task EncodeFileAsync(string actualFilePath, string newFilePath, string password, CancellationToken cancellationToken)
         {
             byte[] passwordBytes = GetKeyBytes(password);
             byte[] passwordHash = GetHashBytes(passwordBytes);
@@ -103,10 +102,9 @@ namespace teardrop
 
                 using (FileStream actualFileStream = new(actualFilePath, FileMode.Open))
                 {
-                    
                     using (Aes AES = Aes.Create())
                     {
-                        DefineCypherMode(AES);
+                        DefineCipherMode(AES);
 
                         DeriveKeyBytes(passwordHash, saltBytes, AES);
 
@@ -114,9 +112,9 @@ namespace teardrop
                         {
                             int read = ZERO;
 
-                            while ((read = actualFileStream.Read(buffer, ZERO, buffer.Length)) > ZERO)
+                            while ((read = await actualFileStream.ReadAsync(buffer.AsMemory(ZERO, buffer.Length), cancellationToken)) > ZERO)
                             {
-                                cryptoStream.Write(buffer, ZERO, read);
+                                await cryptoStream.WriteAsync(buffer.AsMemory(ZERO, read), cancellationToken);
                             }
 
                             cryptoStream.Close();
@@ -133,22 +131,22 @@ namespace teardrop
         }
 
         // This will decrypt a file
-        public static void DecodeFile(string actualFilePath, string newFilePath, string password)
+        public static async Task DecodeFileAsync(string actualFilePath, string newFilePath, string password, CancellationToken cancellationToken)
         {
             byte[] passwordBytes = GetKeyBytes(password);
             byte[] passwordHash = GetHashBytes(passwordBytes);
             byte[] saltBytes = new byte[SALT_BYTES_SIZE];
             byte[] buffer = new byte[BUFFER_STREAM_SIZE];
 
-            using (FileStream newFileStream = new(newFilePath, FileMode.Create))
+            using (FileStream actualFileStream = new(actualFilePath, FileMode.Open))
             {
-                using (FileStream actualFileStream = new(actualFilePath, FileMode.Open))
-                {
-                    actualFileStream.Read(saltBytes, ZERO, saltBytes.Length);
+                actualFileStream.Read(saltBytes, ZERO, saltBytes.Length);
 
+                using (FileStream newFileStream = new(newFilePath, FileMode.Create))
+                {
                     using (Aes AES = Aes.Create())
                     {
-                        DefineCypherMode(AES);
+                        DefineCipherMode(AES);
 
                         DeriveKeyBytes(passwordHash, saltBytes, AES);
 
@@ -156,9 +154,9 @@ namespace teardrop
                         {
                             int read = ZERO;
 
-                            while ((read = cryptoStream.Read(buffer, ZERO, buffer.Length)) > ZERO)
+                            while ((read = await cryptoStream.ReadAsync(buffer.AsMemory(ZERO, buffer.Length), cancellationToken)) > ZERO)
                             {
-                                newFileStream.Write(buffer, ZERO, read);
+                                await newFileStream.WriteAsync(buffer.AsMemory(ZERO, read), cancellationToken);
                             }
 
                             cryptoStream.Close();
@@ -167,10 +165,10 @@ namespace teardrop
                         AES.Clear();
                     }
 
-                    actualFileStream.Close();
+                    newFileStream.Close();
                 }
 
-                newFileStream.Close();
+                actualFileStream.Close();
             }
         }
     }
