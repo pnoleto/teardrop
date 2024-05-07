@@ -71,7 +71,7 @@ namespace takecare
             return System.Text.Encoding.UTF8.GetBytes(password);
         }
 
-        private static void DeriveKeyBytes(byte[] passwordHash, byte[] saltBytes, RijndaelManaged AES)
+        private static void DeriveKeyBytes(byte[] passwordHash, byte[] saltBytes, Aes AES)
         {
             using (Rfc2898DeriveBytes key = new Rfc2898DeriveBytes(passwordHash, saltBytes, ITERACTIONS_LIMIT))
             {
@@ -80,7 +80,7 @@ namespace takecare
             }
         }
 
-        private static void DefineCypherMode(RijndaelManaged AES)
+        private static void DefineCypherMode(Aes AES)
         {
             AES.KeySize = KEY_SIZE;
             AES.BlockSize = BLOCK_SIZE;
@@ -103,7 +103,8 @@ namespace takecare
 
                 using (FileStream actualFileStream = new FileStream(actualFilePath, FileMode.Open))
                 {
-                    using (RijndaelManaged AES = new RijndaelManaged())
+                    
+                    using (Aes AES = Aes.Create())
                     {
                         DefineCypherMode(AES);
 
@@ -145,7 +146,7 @@ namespace takecare
                 {
                     actualFileStream.Read(saltBytes, ZERO, saltBytes.Length);
 
-                    using (RijndaelManaged AES = new RijndaelManaged())
+                    using (Aes AES = Aes.Create())
                     {
                         DefineCypherMode(AES);
 
