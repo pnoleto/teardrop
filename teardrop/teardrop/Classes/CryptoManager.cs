@@ -1,12 +1,9 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Runtime.InteropServices;
 
-namespace takecare
+namespace teardrop
 {
-    public class CryptoManager
+    public partial class CryptoManager
     {
         private const int BYTES_LENGTH = 10;
         private const int SALT_BYTES_SIZE = 32;
@@ -30,7 +27,7 @@ namespace takecare
         {
             char[] randomChars = new char[length];
 
-            Random random = new Random();
+            Random random = new();
 
             for (int i = 0; i < length; i++)
             {
@@ -41,8 +38,9 @@ namespace takecare
         }
 
         // This code can be used to delete the encryption key from memory!
-        [DllImport("KERNEL32.DLL", EntryPoint = "RtlZeroMemory")]
-        public static extern bool ZeroMemory(IntPtr Destination, int Length);
+        [return: MarshalAs(UnmanagedType.Bool)]
+        [LibraryImport("KERNEL32.DLL", EntryPoint = "RtlZeroMemory")]
+        public static partial bool ZeroMemory(IntPtr Destination, int Length);
 
 
         // This will generate a salt for the encryption process
@@ -50,7 +48,7 @@ namespace takecare
         {
             byte[] data = new byte[SALT_BYTES_SIZE];
 
-            using (RNGCryptoServiceProvider service = new RNGCryptoServiceProvider())
+            using (RandomNumberGenerator service = RandomNumberGenerator.Create())
             {
                 for (uint i = 0; i < BYTES_LENGTH; i++)
                 {
@@ -63,17 +61,17 @@ namespace takecare
 
         private static byte[] GetHashBytes(byte[] passwordBytes)
         {
-            return SHA256.Create().ComputeHash(passwordBytes);
+            return SHA256.HashData(passwordBytes);
         }
 
         private static byte[] GetKeyBytes(string password)
         {
-            return System.Text.Encoding.UTF8.GetBytes(password);
+            return System.Text.Encoding.Default.GetBytes(password);
         }
 
         private static void DeriveKeyBytes(byte[] passwordHash, byte[] saltBytes, Aes AES)
         {
-            using (Rfc2898DeriveBytes key = new Rfc2898DeriveBytes(passwordHash, saltBytes, ITERACTIONS_LIMIT))
+            using (Rfc2898DeriveBytes key = new(passwordHash, saltBytes, ITERACTIONS_LIMIT, HashAlgorithmName.SHA256))
             {
                 AES.Key = key.GetBytes(AES.KeySize / BYTE_SIZE);
                 AES.IV = key.GetBytes(AES.BlockSize / BYTE_SIZE);
@@ -97,11 +95,11 @@ namespace takecare
             byte[] saltBytes = GenerateRandomSaltBytes();
             byte[] buffer = new byte[BUFFER_STREAM_SIZE];
 
-            using (FileStream newFileStream = new FileStream(newFilePath, FileMode.Create))
+            using (FileStream newFileStream = new(newFilePath, FileMode.Create))
             {
                 newFileStream.Write(saltBytes, ZERO, saltBytes.Length);
 
-                using (FileStream actualFileStream = new FileStream(actualFilePath, FileMode.Open))
+                using (FileStream actualFileStream = new(actualFilePath, FileMode.Open))
                 {
                     
                     using (Aes AES = Aes.Create())
@@ -110,7 +108,7 @@ namespace takecare
 
                         DeriveKeyBytes(passwordHash, saltBytes, AES);
 
-                        using (CryptoStream cryptoStream = new CryptoStream(newFileStream, AES.CreateEncryptor(), CryptoStreamMode.Write))
+                        using (CryptoStream cryptoStream = new(newFileStream, AES.CreateEncryptor(), CryptoStreamMode.Write))
                         {
                             int read = ZERO;
 
@@ -140,9 +138,9 @@ namespace takecare
             byte[] saltBytes = new byte[SALT_BYTES_SIZE];
             byte[] buffer = new byte[BUFFER_STREAM_SIZE];
 
-            using (FileStream newFileStream = new FileStream(newFilePath, FileMode.Create))
+            using (FileStream newFileStream = new(newFilePath, FileMode.Create))
             {
-                using (FileStream actualFileStream = new FileStream(actualFilePath, FileMode.Open))
+                using (FileStream actualFileStream = new(actualFilePath, FileMode.Open))
                 {
                     actualFileStream.Read(saltBytes, ZERO, saltBytes.Length);
 
@@ -152,7 +150,7 @@ namespace takecare
 
                         DeriveKeyBytes(passwordHash, saltBytes, AES);
 
-                        using (CryptoStream cryptoStream = new CryptoStream(actualFileStream, AES.CreateDecryptor(), CryptoStreamMode.Read))
+                        using (CryptoStream cryptoStream = new(actualFileStream, AES.CreateDecryptor(), CryptoStreamMode.Read))
                         {
                             int read = ZERO;
 

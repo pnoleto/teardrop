@@ -1,6 +1,4 @@
-﻿using System.IO;
-
-namespace takecare
+﻿namespace teardrop
 {
     public class FileManager
     {
