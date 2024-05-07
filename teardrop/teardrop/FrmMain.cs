@@ -2,10 +2,11 @@ namespace teardrop
 {
     public partial class FrmMain : Form
     {
-        private readonly IProgress<string> _notification;
-        private static string _generatedKey = string.Empty;
+        private string _generatedKey = string.Empty;
         private const string _defaultExtension = ".toast";
         private const string _defaultMessage = "<h1>Title:</h1><p>Message</p>";
+
+        private readonly IProgress<string> _notification;
         private readonly CancellationTokenSource _cancellationTokenSource;
 
         private enum CypherMode
@@ -62,7 +63,7 @@ namespace teardrop
 
         public void WriteLine(string text)
         {
-            txtBox.Text += $"{text}{Environment.NewLine}";
+            txtBox.Text += $"[{DateTime.Now:yyyyy/MM/dd HH:mm:ss}] {text}{Environment.NewLine}";
         }
 
         private async Task ChangeAllFilesAsync(string rootPath, CypherMode mode, IProgress<string> notification, CancellationToken cancellationToken)
