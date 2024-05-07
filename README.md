@@ -12,7 +12,6 @@ If you want to help me or send me motivation, star this repository and share it 
 ## Features
 - Encrypt connected devices ( [#7](https://github.com/hackthedev/teardrop/issues/7) )
 - Encrypt whitelisted files
-- Log errors to file
 - Disable/Enable Taskmanager
 - Hide from Taskbar
 - Overlap other applications
