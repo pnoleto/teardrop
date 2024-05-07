@@ -4,7 +4,7 @@ using System.Runtime.Versioning;
 
 namespace teardrop
 {
-    public class MachineMananger
+    internal sealed class MachineManager
     {
         [SupportedOSPlatform("windows")]
         public static void DisableTaskManager()

@@ -1,6 +1,6 @@
 ﻿namespace teardrop
 {
-    public class FileManager
+    internal sealed class FileManager
     {
         public static string RemoveExtension(string filePath, string extension)
         {

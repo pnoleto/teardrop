@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace teardrop
 {
-    public partial class CryptoManager
+    internal sealed partial class CryptoManager
     {
         private const int BYTES_LENGTH = 10;
         private const int SALT_BYTES_SIZE = 32;
@@ -13,6 +13,7 @@ namespace teardrop
         private const int BYTE_SIZE = 8;
         private const int BUFFER_STREAM_SIZE = 8192;
         private const int ZERO = 0;
+
         private static readonly char[] chars = new[]
         {
             'A','B','C','D','E','F',
@@ -20,24 +21,25 @@ namespace teardrop
             'M','N','O','P','Q','R',
             'S','T','U','V','W','X',
             'Y','Z','0','1','2','3',
-            '4','5','6','7','8','9'
+            '4','5','6','7','8','9',
+            '$','%','#','@','*','&',
+            '+','-','[',']','?','/'
         };
 
-        public static string GetRandomString(int length)
+        public static string GetRandomString(uint length)
         {
             char[] randomChars = new char[length];
 
             Random random = new();
 
-            for (int i = 0; i < length; i++)
+            for (int index = ZERO; index < length; index++)
             {
-                randomChars[i] = chars[random.Next(chars.Length)];
+                randomChars[index] = chars[random.Next(chars.Length)];
             }
 
-            return new string(randomChars.ToArray());
+            return new string(randomChars);
         }
 
-        // This code can be used to delete the encryption key from memory!
         [return: MarshalAs(UnmanagedType.Bool)]
         [LibraryImport("KERNEL32.DLL", EntryPoint = "RtlZeroMemory")]
         public static partial bool ZeroMemory(IntPtr Destination, int Length);
@@ -46,17 +48,17 @@ namespace teardrop
         // This will generate a salt for the encryption process
         public static byte[] GenerateRandomSaltBytes()
         {
-            byte[] data = new byte[SALT_BYTES_SIZE];
+            byte[] saltBytes = new byte[SALT_BYTES_SIZE];
 
             using (RandomNumberGenerator service = RandomNumberGenerator.Create())
             {
-                for (uint i = 0; i < BYTES_LENGTH; i++)
+                for (uint index = ZERO; index < BYTES_LENGTH; index++)
                 {
-                    service.GetBytes(data);
+                    service.GetBytes(saltBytes);
                 }
             }
 
-            return data;
+            return saltBytes;
         }
 
         private static byte[] GetHashBytes(byte[] passwordBytes)
