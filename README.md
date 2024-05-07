@@ -10,20 +10,16 @@ If you want to help me or send me motivation, star this repository and share it 
 <br>
 
 ## Features
-- Send Machine Data to SQL Server
 - Encrypt connected devices ( [#7](https://github.com/hackthedev/teardrop/issues/7) )
+- Encrypt whitelisted files
 - Log errors to file
 - Disable/Enable Taskmanager
 - Hide from Taskbar
 - Overlap other applications
-- Multi-Threading
+- TAP Pattern
 - Extension Whitelist
-- Simulate Mouse Click
 - Generate unique Device Id
 - Make Application Unkillable
-- Register Application in StartUp
-- Theme "System"
-- Encryption [Fuse](https://github.com/hackthedev/teardrop/blob/master/teardrop/teardrop/Form1.cs#L450-L463)
 
 <br>
 
@@ -33,7 +29,7 @@ If you're stuck with doing something on this project you can hit me up on Discor
 <br>
 
 ## Updates?
-I've planned to keep updating this project and fixing bugs. If you've found any bug, you can [create a new issue](https://github.com/hackthedev/teardrop/issues). There might be updates where I only cleaned up the Code. It is planned to also implement new Features. If you want to stay up-to-date, follow me on Github.
+I've planned to keep updating this project and fixing bugs. If you've found any bug, you can [create a new issue](https://github.com/pnoleto/teardrop/issues). There might be updates where I only cleaned up the Code. It is planned to also implement new Features. If you want to stay up-to-date, follow me on Github.
 
 <br>
 
