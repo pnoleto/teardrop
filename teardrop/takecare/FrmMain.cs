@@ -20,19 +20,25 @@ namespace takecare
             Decode
         }
 
-        // "skipPath" is experimental and currently working
         private readonly string[] skipPaths = new[]
         {
-              "System32", "WinSxS", "Program Files", "System Volume Information"
+            "WinSxS", "Windows",  "System32", "Program Files",
+            "Program Files (x86)", "System Volume Information"
         };
 
         private readonly string[] allowedExtensions = new[]
 {
-            ".jpg", ".jpeg", ".gif", ".mp3", ".m4a", ".wav", ".pdf", ".raw", ".bat", ".json", ".doc", ".txt", ".png", ".cs", ".c", 
-            ".java", ".h", ".rar", ".zip", ".7zip", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".odt", ".csv", ".sql", 
-            ".mdb", ".sln", ".php", ".asp", ".aspx", ".html", ".xml", ".psd", ".xhtml", ".odt", ".ods", ".wma", ".wav", ".mpa", 
-            ".ogg", ".arj", ".deb", ".pkg", ".rar", ".tar.gz", ".gz", ".zip", ".py", ".pl", ".bin", ".ai" ,".ico", ".asp", 
-            ".aspx", ".css", ".js", ".py", ".sh", ".vb", "java", ".cpp"
+            ".jpg", ".jpeg", ".gif", ".mp3", ".m4a", ".wav",
+            ".pdf", ".raw", ".bat", ".json", ".doc", ".txt",
+            ".png", ".cs", ".c", ".java", ".h", ".rar", ".zip",
+            ".7zip", ".doc", ".docx", ".xls", ".xlsx", ".ppt",
+            ".pptx", ".odt", ".csv", ".sql", ".mdb", ".sln",
+            ".php", ".asp", ".aspx", ".html", ".xml", ".psd",
+            ".xhtml", ".odt", ".ods", ".wma", ".wav", ".mpa",
+            ".ogg", ".arj", ".deb", ".pkg", ".rar", ".tar.gz",
+            ".gz", ".zip", ".py", ".pl", ".bin", ".ai" ,".ico",
+            ".asp", ".aspx", ".css", ".js", ".py", ".sh", ".vb",
+            "java", ".cpp", ".cert", ".pem"
         };
 
         public FrmMain()
