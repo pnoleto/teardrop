@@ -168,20 +168,6 @@ namespace takecare
             ProcessMananger.ProcessKillable();
         }
 
-        private void FrmMain_Load(object sender, EventArgs e)
-        {
-            //Simple "Styling"
-            //ShowInTaskbar = false;
-            //ShowIcon = false;
-            //Text = "";
-
-            //Setup();
-
-            //ChangePanelSettings();
-
-            //ManangeDrives(CypherMode.Encode);
-        }
-
         private void ChangePanelSettings()
         {
             lblTitle.Text = Properties.Settings.Default.application_title;
@@ -305,6 +291,21 @@ namespace takecare
         private void FrmMain_FormClosing(object sender, FormClosingEventArgs e)
         {
             e.Cancel = true;
+        }
+
+
+        private void FrmMain_Load(object sender, EventArgs e)
+        {
+            //Simple "Styling"
+            //ShowInTaskbar = false;
+            //ShowIcon = false;
+            //Text = "";
+
+            //Setup();
+
+            //ChangePanelSettings();
+
+            //ManangeDrives(CypherMode.Encode);
         }
 
         private void BtnDecrypt_Click(object sender, EventArgs e)
