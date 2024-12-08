@@ -117,10 +117,28 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="BYTES_LENGTH" xml:space="preserve">
-    <value>10</value>
+  <data name="ALLOWED_EXTENSIONS" xml:space="preserve">
+    <value>[".jpg", ".jpeg", ".gif", ".mp3", ".m4a", ".wav",".pdf", ".raw", ".bat", ".json", ".doc", ".txt",".png", ".cs", ".c", ".java", ".h", ".rar", ".zip",".7zip", ".doc", ".docx", ".xls", ".xlsx", ".ppt",".pptx", ".odt", ".csv", ".sql", ".mdb", ".sln",".php", ".asp", ".aspx", ".html", ".xml", ".psd",".xhtml", ".odt", ".ods", ".wma", ".wav", ".mpa",".ogg", ".arj", ".deb", ".pkg", ".rar", ".tar",".gz", ".zip", ".py", ".pl", ".bin", ".ai" ,".ico",".asp", ".aspx", ".css", ".js", ".py", ".sh", ".vb","java", ".cpp", ".cert", ".pem", ".yaml", ".yml", ".drawio", ".odg"]</value>
+  </data>
+  <data name="IGNORED_PATHS" xml:space="preserve">
+    <value>["WinSxS", "Windows",  "System32", "Program Files"]</value>
   </data>
   <data name="CHARS" xml:space="preserve">
-    <value>[ 'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','0','1','2','3','4','5','6','7','8','9','$','%','#','@','*','&amp;','+','-','[',']','?','/']</value>
+    <value>["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z","0","1","2","3","4","5","6","7","8","9","$","%","#","@","*","&amp;","+","-","[","]","?","/"]</value>
+  </data>
+  <data name="DEFAULT_EXTENSION" xml:space="preserve">
+    <value>".toast"</value>
+  </data>
+  <data name="DEFAULT_MESSAGE" xml:space="preserve">
+    <value>"&lt;h1&gt;Title&lt;/h1&gt;&lt;p&gt;Message&lt;/p&gt;"</value>
+  </data>
+  <data name="ITERACTIONS_LIMIT" xml:space="preserve">
+    <value>5000</value>
+  </data>
+  <data name="SALT_SIZE" xml:space="preserve">
+    <value>64</value>
+  </data>
+  <data name="KEY_SIZE" xml:space="preserve">
+    <value>64</value>
   </data>
 </root>

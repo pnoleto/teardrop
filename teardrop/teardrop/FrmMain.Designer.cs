@@ -45,7 +45,7 @@
             // btnDecode
             // 
             btnDecode.BackColor = Color.LightCoral;
-            btnDecode.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
+            btnDecode.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             btnDecode.Location = new Point(652, 406);
             btnDecode.Name = "btnDecode";
             btnDecode.Size = new Size(136, 32);
@@ -80,6 +80,7 @@
             StartPosition = FormStartPosition.CenterScreen;
             TopMost = true;
             FormClosing += FrmMain_FormClosing;
+            Load += FrmMain_Load;
             ResumeLayout(false);
             PerformLayout();
         }
