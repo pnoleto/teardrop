@@ -2,7 +2,7 @@
 using Microsoft.Win32;
 using System.Runtime.Versioning;
 
-namespace teardrop
+namespace teardrop.Classes
 {
     internal sealed class MachineManager
     {

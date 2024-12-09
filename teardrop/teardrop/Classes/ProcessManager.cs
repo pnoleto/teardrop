@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace teardrop
+namespace teardrop.Classes
 {
     internal sealed partial class ProcessManager
     {

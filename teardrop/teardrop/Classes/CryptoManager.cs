@@ -1,14 +1,35 @@
 ﻿using System.Security.Cryptography;
 
-namespace teardrop
+namespace teardrop.Classes
 {
-    internal sealed partial class CryptoManager(CryptoSettings settings, CancellationToken cancellationToken)
+    internal sealed partial class CryptoManager
     {
         private const int ZERO = 0;
         private const int BYTE_SIZE = 8;
         private const int KEY_SIZE = 256;
         private const int BLOCK_SIZE = 128;
         private const int BUFFER_STREAM_LENGTH = 8192;
+
+        private readonly CancellationToken _cancellationToken;
+
+        private CryptoSettings? _settings;
+
+        public CryptoManager(CancellationToken cancellationToken)
+        {
+            _cancellationToken = cancellationToken;
+        }
+        public CryptoManager(CryptoSettings settings, CancellationToken cancellationToken)
+        {
+            _settings = settings;
+            _cancellationToken = cancellationToken;
+        }
+
+        public void DefineSettings(CryptoSettings settings)
+        {
+            ArgumentNullException.ThrowIfNull(settings);
+
+            _settings = settings;
+        }
 
         private static void DefineCipherMode(Aes AES)
         {
@@ -18,9 +39,11 @@ namespace teardrop
             AES.Mode = CipherMode.CFB;
         }
 
-        private void DeriveKeyBytes(byte[] passwordHash, byte[] saltBytes, Aes AES)
+        private void DeriveKeyBytes(Aes AES)
         {
-            using (Rfc2898DeriveBytes key = new(passwordHash, saltBytes, settings.IteractionsLimit, HashAlgorithmName.SHA256))
+            ArgumentNullException.ThrowIfNull(_settings);
+
+            using (Rfc2898DeriveBytes key = new(_settings.PasswordHash, _settings.SaltBytes, _settings.IteractionsLimit, HashAlgorithmName.SHA256))
             {
                 AES.Key = key.GetBytes(AES.KeySize / BYTE_SIZE);
                 AES.IV = key.GetBytes(AES.BlockSize / BYTE_SIZE);
@@ -29,11 +52,13 @@ namespace teardrop
 
         public async Task EncodeFileAsync(string actualFilePath, string newFilePath)
         {
+            ArgumentNullException.ThrowIfNull(_settings);
+
             byte[] buffer = new byte[BUFFER_STREAM_LENGTH];
 
             using (FileStream newFileStream = new(newFilePath, FileMode.Create))
             {
-                newFileStream.Write(settings.SaltBytes, ZERO, settings.SaltBytes.Length);
+                newFileStream.Write(_settings.SaltBytes, ZERO, _settings.SaltBytes.Length);
 
                 using (FileStream actualFileStream = new(actualFilePath, FileMode.Open))
                 {
@@ -41,15 +66,15 @@ namespace teardrop
                     {
                         DefineCipherMode(AES);
 
-                        DeriveKeyBytes(settings.PasswordHash, settings.SaltBytes, AES);
+                        DeriveKeyBytes(AES);
 
                         using (CryptoStream cryptoStream = new(newFileStream, AES.CreateEncryptor(), CryptoStreamMode.Write))
                         {
                             int read = ZERO;
 
-                            while ((read = await actualFileStream.ReadAsync(buffer.AsMemory(ZERO, buffer.Length), cancellationToken)) > ZERO)
+                            while ((read = await actualFileStream.ReadAsync(buffer.AsMemory(ZERO, buffer.Length), _cancellationToken)) > ZERO)
                             {
-                                await cryptoStream.WriteAsync(buffer.AsMemory(ZERO, read), cancellationToken);
+                                await cryptoStream.WriteAsync(buffer.AsMemory(ZERO, read), _cancellationToken);
                             }
 
                             cryptoStream.Close();
@@ -67,11 +92,13 @@ namespace teardrop
 
         public async Task DecodeFileAsync(string actualFilePath, string newFilePath)
         {
+            ArgumentNullException.ThrowIfNull(_settings);
+
             byte[] buffer = new byte[BUFFER_STREAM_LENGTH];
 
             using (FileStream actualFileStream = new(actualFilePath, FileMode.Open))
             {
-                actualFileStream.Read(settings.SaltBytes, ZERO, settings.SaltBytes.Length);
+                actualFileStream.Read(_settings.SaltBytes, ZERO, _settings.SaltBytes.Length);
 
                 using (FileStream newFileStream = new(newFilePath, FileMode.Create))
                 {
@@ -79,15 +106,15 @@ namespace teardrop
                     {
                         DefineCipherMode(AES);
 
-                        DeriveKeyBytes(settings.PasswordHash, settings.SaltBytes, AES);
+                        DeriveKeyBytes(AES);
 
                         using (CryptoStream cryptoStream = new(actualFileStream, AES.CreateDecryptor(), CryptoStreamMode.Read))
                         {
                             int read = ZERO;
 
-                            while ((read = await cryptoStream.ReadAsync(buffer.AsMemory(ZERO, buffer.Length), cancellationToken)) > ZERO)
+                            while ((read = await cryptoStream.ReadAsync(buffer.AsMemory(ZERO, buffer.Length), _cancellationToken)) > ZERO)
                             {
-                                await newFileStream.WriteAsync(buffer.AsMemory(ZERO, read), cancellationToken);
+                                await newFileStream.WriteAsync(buffer.AsMemory(ZERO, read), _cancellationToken);
                             }
 
                             cryptoStream.Close();

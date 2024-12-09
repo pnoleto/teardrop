@@ -1,4 +1,4 @@
-﻿namespace teardrop
+﻿namespace teardrop.Classes
 {
     internal sealed class CryptoSettings(byte[] PasswordHash, byte[] SaltBytes, int IteractionsLimit)
     {

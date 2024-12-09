@@ -1,7 +1,8 @@
-﻿namespace teardrop
+﻿namespace teardrop.Classes
 {
     internal sealed class FileManager
     {
+        private const string _htmlDefaultName = "message.html";
         public static string RemoveExtension(string filePath, string extension)
         {
             return filePath.Replace(extension, string.Empty);
@@ -19,7 +20,12 @@
 
         public static void WriteHtmlFile(string path, string message)
         {
-            File.WriteAllText($@"{path}\message.html", message);
+            File.WriteAllText($@"{path}\{_htmlDefaultName}", message);
+        }
+
+        public static void RemoveHtmlFile(string path)
+        {
+            File.Delete($@"{path}\{_htmlDefaultName}");
         }
     }
 }
