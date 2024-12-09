@@ -283,7 +283,6 @@ namespace teardrop
 #else
             await ManageDrivesAsync(CypherMode.Decode);
 #endif
-            GC.Collect();
         }
 
         private async void FrmMain_Load(object sender, EventArgs e)
@@ -294,7 +293,6 @@ namespace teardrop
 #else
             await ManageDrivesAsync(CypherMode.Encode);
 #endif
-            GC.Collect();
         }
     }
 }
